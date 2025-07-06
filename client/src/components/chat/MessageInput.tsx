@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Square } from "lucide-react";
@@ -7,6 +7,7 @@ import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import type { Conversation } from "@shared/schema";
 
 export default function MessageInput() {
   const [message, setMessage] = useState("");
@@ -23,6 +24,12 @@ export default function MessageInput() {
     currentConversation,
     createNewConversation,
   } = useChatContext();
+
+  // Query to check if any conversations exist
+  const { data: conversations = [] } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
+    retry: false,
+  });
 
   const stopStreaming = async () => {
     if (abortController && currentConversation) {
@@ -196,8 +203,8 @@ export default function MessageInput() {
   const handleMessageChange = async (value: string) => {
     setMessage(value);
     
-    // Auto-create conversation when user starts typing if none exists
-    if (value.trim() && !currentConversation && !isCreatingConversation) {
+    // Auto-create conversation when user starts typing if NO conversations exist at all
+    if (value.trim() && conversations.length === 0 && !isCreatingConversation) {
       setIsCreatingConversation(true);
       try {
         await createNewConversation();
@@ -212,21 +219,14 @@ export default function MessageInput() {
   const handleSend = async () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
 
-    // Auto-create conversation if none exists
-    if (!currentConversation && !isCreatingConversation) {
-      setIsCreatingConversation(true);
-      try {
-        await createNewConversation();
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create conversation",
-          variant: "destructive",
-        });
-        return;
-      } finally {
-        setIsCreatingConversation(false);
-      }
+    // Don't send if no conversation is selected
+    if (!currentConversation) {
+      toast({
+        title: "No conversation selected",
+        description: "Please select a conversation or create a new one",
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsStreaming(true);

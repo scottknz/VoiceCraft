@@ -113,4 +113,4 @@ Changelog:
 - July 06, 2025. Fixed automatic conversation creation - now only via user plus button
 - July 06, 2025. Improved chat system with proper message persistence and streaming
 - July 06, 2025. Simplified conversation list to minimalist ChatGPT-style interface
-- July 06, 2025. Added auto-conversation creation when user starts typing in empty state
+- July 06, 2025. Added auto-conversation creation only when NO conversations exist (not just none selected)
