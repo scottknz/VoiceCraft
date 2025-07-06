@@ -56,8 +56,23 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
     });
     
     console.log(`Gemini API response status:`, response);
+    console.log(`Gemini response candidates:`, response.candidates);
 
-    const fullText = response.text || "";
+    // Try different ways to extract text from the response
+    let fullText = "";
+    
+    if (response.candidates && response.candidates.length > 0) {
+      const candidate = response.candidates[0];
+      if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+        fullText = candidate.content.parts[0].text || "";
+      }
+    }
+    
+    // Fallback to direct text property
+    if (!fullText) {
+      fullText = response.text || "";
+    }
+    
     console.log(`Gemini response received: "${fullText}" (length: ${fullText.length})`);
     
     const stream = new ReadableStream({
