@@ -7,7 +7,7 @@ import MessageInput from "./MessageInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useToast } from "@/hooks/use-toast";
 import type { VoiceProfile } from "@shared/schema";
@@ -41,10 +41,6 @@ export default function ChatInterface() {
 
   // Don't automatically create conversations - user must explicitly create them
 
-  const handleNewChat = () => {
-    createNewConversation();
-  };
-
   const modelOptions = [
     { value: "gpt-4o", label: "GPT-4 (OpenAI)" },
     { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
@@ -58,16 +54,6 @@ export default function ChatInterface() {
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNewChat}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              New Chat
-            </Button>
-            
             {activeVoiceProfile && (
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
