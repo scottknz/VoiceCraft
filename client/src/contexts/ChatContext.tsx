@@ -14,6 +14,8 @@ interface ChatContextType {
   currentConversation: Conversation | null;
   setCurrentConversation: (conversation: Conversation | null) => void;
   createNewConversation: () => Promise<void>;
+  accumulatedContent: string;
+  setAccumulatedContent: (content: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -26,6 +28,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [accumulatedContent, setAccumulatedContent] = useState<string>("");
 
   // Query conversations to auto-select the most recent one
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -102,6 +105,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     currentConversation,
     setCurrentConversation,
     createNewConversation,
+    accumulatedContent,
+    setAccumulatedContent,
   };
 
   return (

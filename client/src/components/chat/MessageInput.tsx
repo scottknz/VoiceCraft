@@ -13,7 +13,6 @@ export default function MessageInput() {
   const [message, setMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const [accumulatedContent, setAccumulatedContent] = useState("");
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -23,6 +22,8 @@ export default function MessageInput() {
     activeVoiceProfile,
     currentConversation,
     createNewConversation,
+    accumulatedContent,
+    setAccumulatedContent
   } = useChatContext();
 
   // Query to check if any conversations exist
