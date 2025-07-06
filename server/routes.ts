@@ -117,14 +117,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       
-      const responseStream = await createChatStream({
+      const { stream: responseStream, fullResponse } = await createChatStream({
         model: model as "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo",
         messages: chatMessages,
         systemInstruction: "You are a helpful AI assistant."
       });
       
+      // Save the complete response to database immediately
+      console.log(`Saving AI response: "${fullResponse.substring(0, 100)}..." (length: ${fullResponse.length})`);
+      const savedMessage = await storage.addMessage({
+        conversationId: conversationId,
+        role: 'assistant',
+        content: fullResponse
+      });
+      console.log(`Message saved with ID: ${savedMessage.id}`);
+      
       const reader = responseStream.getReader();
-      let fullResponse = "";
       
       try {
         while (true) {
@@ -132,41 +140,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (done) break;
           
           const chunk = new TextDecoder().decode(value);
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') {
-                break;
-              }
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.content) {
-                  fullResponse += parsed.content;
-                  res.write(line + '\n');
-                }
-              } catch (e) {
-                // Skip invalid JSON
-              }
-            }
-          }
+          res.write(chunk);
         }
       } catch (error) {
         console.error('Chat streaming error:', error);
         res.write(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
       } finally {
-        res.write('data: [DONE]\n\n');
         res.end();
-        
-        // Save the complete response to database
-        if (fullResponse.trim()) {
-          await storage.addMessage({
-            conversationId: conversationId,
-            role: 'assistant',
-            content: fullResponse
-          });
-        }
       }
     } catch (error) {
       console.error("Chat error:", error);

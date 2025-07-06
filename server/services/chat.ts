@@ -84,12 +84,12 @@ async function createOpenAIResponse(options: ChatOptions): Promise<string> {
   return text;
 }
 
-export async function createChatStream(options: ChatOptions): Promise<ReadableStream> {
+export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: string }> {
   try {
     // For now, get the complete response and simulate streaming
     const fullResponse = await createChatResponse(options);
     
-    return new ReadableStream({
+    const stream = new ReadableStream({
       async start(controller) {
         const words = fullResponse.split(" ");
         for (let i = 0; i < words.length; i++) {
@@ -101,14 +101,20 @@ export async function createChatStream(options: ChatOptions): Promise<ReadableSt
         controller.close();
       }
     });
+
+    return { stream, fullResponse };
   } catch (error) {
     console.error("Chat stream error:", error);
-    return new ReadableStream({
+    const errorMessage = "I apologize, but I encountered an error generating a response. Please try again.";
+    
+    const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: "I apologize, but I encountered an error generating a response. Please try again." })}\n\n`));
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: errorMessage })}\n\n`));
         controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
         controller.close();
       }
     });
+    
+    return { stream, fullResponse: errorMessage };
   }
 }
