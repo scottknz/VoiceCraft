@@ -42,6 +42,30 @@ export const voiceProfiles = pgTable("voice_profiles", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name").notNull(),
   description: text("description"),
+  
+  // Purpose
+  purpose: text("purpose"),
+  
+  // Tone - array of selected tone options plus custom tones
+  toneOptions: text("tone_options").array(),
+  customTones: text("custom_tones").array(),
+  
+  // Structure
+  structurePreferences: text("structure_preferences"),
+  
+  // Formatting - sliders (0-5)
+  boldUsage: integer("bold_usage").default(2), // 0-5
+  lineSpacing: integer("line_spacing").default(2), // 0=dense, 5=spacious
+  emojiUsage: integer("emoji_usage").default(1), // 0=never, 2=sparingly, 5=expressively
+  listVsParagraphs: integer("list_vs_paragraphs").default(2), // 0=all paragraphs, 5=all lists
+  markupStyle: integer("markup_style").default(2), // 0=plain text, 2=markdown, 5=HTML
+  
+  // Personality & Values
+  moralTone: text("moral_tone"),
+  preferredStance: varchar("preferred_stance"), // Challenger/Coach/Collaborator/Curator
+  ethicalBoundaries: text("ethical_boundaries").array(),
+  humourLevel: varchar("humour_level"), // None/Dry/Occasional/Bold
+  
   isActive: boolean("is_active").default(false),
   samplesCount: integer("samples_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import VoiceProfileModal from "./VoiceProfileModal";
+import DetailedVoiceProfileModal from "./DetailedVoiceProfileModal";
 import ConversationList from "./ConversationList";
 import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -300,7 +300,7 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
 
       {/* Modal */}
       {showModal && (
-        <VoiceProfileModal
+        <DetailedVoiceProfileModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
           profile={selectedProfile}
