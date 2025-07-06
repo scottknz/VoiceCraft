@@ -160,6 +160,11 @@ export default function MessageInput() {
       textareaRef.current.style.height = "auto";
     }
 
+    // Reset streaming state before sending
+    window.dispatchEvent(new CustomEvent('streamingMessage', { 
+      detail: { reset: true } 
+    }));
+
     sendMessageMutation.mutate({ message: messageToSend, stream: true });
   };
 

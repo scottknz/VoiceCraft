@@ -21,18 +21,6 @@ export default function MessageList() {
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentConversation?.id, "messages"],
     enabled: !!currentConversation?.id,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   const scrollToBottom = () => {
@@ -46,7 +34,14 @@ export default function MessageList() {
   // Handle streaming messages
   useEffect(() => {
     const handleStreamingMessage = (event: CustomEvent) => {
-      const { content, done } = event.detail;
+      const { content, done, reset } = event.detail;
+      
+      if (reset) {
+        // Reset the typing state for a new message
+        setTypingMessage("");
+        setIsTyping(false);
+        return;
+      }
       
       if (done) {
         setIsTyping(false);
@@ -65,8 +60,15 @@ export default function MessageList() {
     };
   }, []);
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { 
+  // Reset typing state when conversation changes
+  useEffect(() => {
+    setTypingMessage("");
+    setIsTyping(false);
+  }, [currentConversation?.id]);
+
+  const formatTime = (date: Date | null) => {
+    if (!date) return "";
+    return new Date(date).toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
