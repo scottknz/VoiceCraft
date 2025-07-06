@@ -13,6 +13,7 @@ export default function MessageInput() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [accumulatedContent, setAccumulatedContent] = useState("");
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
@@ -192,17 +193,40 @@ export default function MessageInput() {
     },
   });
 
+  const handleMessageChange = async (value: string) => {
+    setMessage(value);
+    
+    // Auto-create conversation when user starts typing if none exists
+    if (value.trim() && !currentConversation && !isCreatingConversation) {
+      setIsCreatingConversation(true);
+      try {
+        await createNewConversation();
+      } catch (error) {
+        console.error("Failed to auto-create conversation:", error);
+      } finally {
+        setIsCreatingConversation(false);
+      }
+    }
+  };
+
   const handleSend = async () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
 
-    // Don't send if no conversation is selected
-    if (!currentConversation) {
-      toast({
-        title: "No conversation selected",
-        description: "Please create a new conversation first",
-        variant: "destructive",
-      });
-      return;
+    // Auto-create conversation if none exists
+    if (!currentConversation && !isCreatingConversation) {
+      setIsCreatingConversation(true);
+      try {
+        await createNewConversation();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create conversation",
+          variant: "destructive",
+        });
+        return;
+      } finally {
+        setIsCreatingConversation(false);
+      }
     }
 
     setIsStreaming(true);
@@ -226,16 +250,16 @@ export default function MessageInput() {
     }
   }, []);
 
-  const isLoading = sendMessageMutation.isPending || isStreaming;
+  const isLoading = sendMessageMutation.isPending || isStreaming || isCreatingConversation;
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-700">
       <div className="flex items-center space-x-2">
         <Input
           ref={inputRef}
-          placeholder="Type your message..."
+          placeholder={isCreatingConversation ? "Creating conversation..." : "Type your message..."}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => handleMessageChange(e.target.value)}
           onKeyPress={handleKeyPress}
           disabled={isLoading}
           className="flex-1"
