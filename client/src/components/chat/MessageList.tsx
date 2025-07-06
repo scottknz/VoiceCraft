@@ -124,7 +124,9 @@ export default function MessageList() {
         </div>
       ) : (
         <>
-          {messages.map((message) => (
+          {messages
+            .filter(message => message.role !== "system") // Filter out system messages
+            .map((message) => (
             <MessageBubble
               key={message.id}
               message={message}

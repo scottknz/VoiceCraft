@@ -93,8 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversationId = parseInt(req.params.id);
       const messages = await storage.getConversationMessages(conversationId);
       
-      if (messages.length < 2) {
-        res.status(400).json({ message: "Need at least 2 messages to generate title" });
+      if (messages.length < 1) {
+        res.status(400).json({ message: "Need at least 1 message to generate title" });
         return;
       }
 
@@ -103,12 +103,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiMessage = messages.find(m => m.role === 'assistant')?.content || "";
       
       // Generate title using AI
-      const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
+      let titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
 
-User: ${userMessage.substring(0, 200)}
-Assistant: ${aiMessage.substring(0, 200)}
-
-Generate only the title, nothing else:`;
+User: ${userMessage.substring(0, 200)}`;
+      
+      if (aiMessage) {
+        titlePrompt += `\nAssistant: ${aiMessage.substring(0, 200)}`;
+      }
+      
+      titlePrompt += `\n\nGenerate only the title, nothing else:`;
 
       const { createChatResponse } = await import('./services/chat');
       
@@ -116,7 +119,7 @@ Generate only the title, nothing else:`;
         model: "gemini-2.5-flash",
         messages: [{ role: "user", content: titlePrompt }],
         temperature: 0.7,
-        maxTokens: 10
+        maxTokens: 20
       });
 
       // Clean up the title - remove quotes and trim
