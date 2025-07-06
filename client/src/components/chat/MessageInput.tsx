@@ -125,13 +125,20 @@ export default function MessageInput() {
             }
           }
         } catch (error) {
-          console.error("Streaming error:", error);
           setIsStreaming(false);
-          toast({
-            title: "Error",
-            description: "Failed to receive streaming response",
-            variant: "destructive",
-          });
+          setAbortController(null);
+          
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.log("Streaming aborted by user");
+            // Don't show error toast for user-initiated aborts
+          } else {
+            console.error("Streaming error:", error);
+            toast({
+              title: "Error",
+              description: "Failed to receive streaming response",
+              variant: "destructive",
+            });
+          }
         }
       } else {
         // Handle non-streaming response
@@ -142,6 +149,14 @@ export default function MessageInput() {
     },
     onError: (error) => {
       setIsStreaming(false);
+      setAbortController(null);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log("Request aborted by user");
+        // Don't show error toast for user-initiated aborts
+        return;
+      }
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -153,6 +168,7 @@ export default function MessageInput() {
         }, 500);
         return;
       }
+      
       toast({
         title: "Error",
         description: "Failed to send message",
