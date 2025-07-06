@@ -13,18 +13,22 @@ export default function MessageList() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [forceRefresh, setForceRefresh] = useState(0);
 
-  // Query for messages with forced refresh capability
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ["/api/conversations", currentConversation?.id, "messages", forceRefresh],
+  // Server-first approach: always fetch from database
+  const { data: messages = [], isLoading, refetch } = useQuery<Message[]>({
+    queryKey: ["/api/conversations", currentConversation?.id, "messages"],
     enabled: !!currentConversation,
-    staleTime: 0,
-    cacheTime: 0, // Don't cache messages
+    staleTime: 0, // Always fetch fresh data
   });
 
-  // Listen for streaming events
+  // Listen for events to trigger database refresh
   useEffect(() => {
+    const handleMessageSaved = (event: CustomEvent) => {
+      console.log("Message saved to database - refreshing display");
+      // Refresh from database after message is saved
+      refetch();
+    };
+
     const handleStreamingMessage = (event: CustomEvent) => {
       const { content, done, reset } = event.detail;
       
@@ -37,13 +41,7 @@ export default function MessageList() {
       if (done) {
         setStreamingMessage("");
         setIsStreaming(false);
-        
-        // Force refresh messages by incrementing the refresh counter
-        console.log("Streaming complete - forcing message refresh...");
-        setTimeout(() => {
-          setForceRefresh(prev => prev + 1);
-        }, 500);
-        
+        // Don't refresh here - wait for server to confirm save
         return;
       }
       
@@ -51,27 +49,16 @@ export default function MessageList() {
       setStreamingMessage(prev => prev + content);
     };
 
-    // Listen for new user messages
-    const handleUserMessage = (event: CustomEvent) => {
-      const { message } = event.detail;
-      console.log("User message received:", message);
-      
-      // Force refresh after user message is sent
-      setTimeout(() => {
-        setForceRefresh(prev => prev + 1);
-      }, 1000);
-    };
-
+    window.addEventListener('messageSaved', handleMessageSaved as EventListener);
     window.addEventListener('streamingMessage', handleStreamingMessage as EventListener);
-    window.addEventListener('userMessage', handleUserMessage as EventListener);
 
     return () => {
+      window.removeEventListener('messageSaved', handleMessageSaved as EventListener);
       window.removeEventListener('streamingMessage', handleStreamingMessage as EventListener);
-      window.removeEventListener('userMessage', handleUserMessage as EventListener);
     };
-  }, [currentConversation?.id]);
+  }, [refetch]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingMessage]);
@@ -120,7 +107,7 @@ export default function MessageList() {
     );
   }
 
-  // Filter out system messages and sort by creation time
+  // Filter system messages and sort by creation time
   const displayMessages = (messages as Message[])
     .filter(message => message.role !== "system")
     .sort((a, b) => {
@@ -129,7 +116,7 @@ export default function MessageList() {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 
-  console.log(`Displaying ${displayMessages.length} messages (${messages.length} total loaded)`);
+  console.log(`Displaying ${displayMessages.length} messages from database`);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -140,16 +127,17 @@ export default function MessageList() {
         </div>
       ) : (
         <>
+          {/* Display all saved messages from database */}
           {displayMessages.map((message) => (
             <MessageBubble
-              key={`${message.id}-${message.createdAt}`}
+              key={message.id}
               message={message}
               onCopy={copyToClipboard}
               formatTime={formatTime}
             />
           ))}
           
-          {/* Streaming AI Response */}
+          {/* Show streaming response in memory (not yet saved) */}
           {isStreaming && streamingMessage && (
             <div className="flex gap-3 items-start">
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">

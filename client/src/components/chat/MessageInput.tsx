@@ -65,17 +65,18 @@ export default function MessageInput() {
         throw new Error("No active conversation");
       }
 
-      // Dispatch user message event for immediate UI display
-      window.dispatchEvent(new CustomEvent('userMessage', { 
-        detail: { message } 
-      }));
-
-      // Save the user message to the database
+      // Server-first: Save user message to database first
+      console.log("Saving user message to database...");
       await apiRequest("POST", "/api/messages", {
         conversationId: currentConversation.id,
         role: "user",
         content: message,
       });
+
+      // Notify UI to refresh from database
+      window.dispatchEvent(new CustomEvent('messageSaved', { 
+        detail: { type: 'user', message } 
+      }));
 
       const requestBody = {
         conversationId: currentConversation.id,
@@ -126,11 +127,20 @@ export default function MessageInput() {
                   setIsStreaming(false);
                   setAbortController(null);
                   setAccumulatedContent("");
-                  // No invalidation here - let MessageList handle refetch
-                  // Dispatch done event
+                  
+                  // Dispatch done event to stop streaming UI
                   window.dispatchEvent(new CustomEvent('streamingMessage', { 
                     detail: { content: "", done: true } 
                   }));
+                  
+                  // Wait a moment for server to save, then notify database refresh
+                  setTimeout(() => {
+                    console.log("AI response streaming complete - requesting database refresh");
+                    window.dispatchEvent(new CustomEvent('messageSaved', { 
+                      detail: { type: 'assistant' } 
+                    }));
+                  }, 1000);
+                  
                   return;
                 }
 
