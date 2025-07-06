@@ -133,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
 
       console.log(`Starting chat for model: ${model}`);
+      console.log(`Conversation history: ${chatMessages.length} messages loaded`);
       
       // Set up streaming response
       res.setHeader('Content-Type', 'text/event-stream');
