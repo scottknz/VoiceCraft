@@ -15,7 +15,7 @@ interface ChatContextType {
   setCurrentConversation: (conversation: Conversation | null) => void;
   createNewConversation: () => Promise<void>;
   accumulatedContent: string;
-  setAccumulatedContent: (content: string) => void;
+  setAccumulatedContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);

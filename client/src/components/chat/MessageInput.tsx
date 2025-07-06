@@ -156,7 +156,11 @@ export default function MessageInput() {
                 try {
                   const parsed = JSON.parse(data);
                   if (parsed.content) {
-                    setAccumulatedContent(prev => prev + parsed.content);
+                    setAccumulatedContent((prev: string) => {
+                      const newContent = prev + parsed.content;
+                      console.log(`Accumulating content: ${prev.length} + ${parsed.content.length} = ${newContent.length}`);
+                      return newContent;
+                    });
                     // Dispatch streaming event
                     window.dispatchEvent(new CustomEvent('streamingMessage', { 
                       detail: { content: parsed.content, done: false } 
