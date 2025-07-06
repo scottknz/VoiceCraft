@@ -1,24 +1,20 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useChatContext } from "@/contexts/ChatContext";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Send, ArrowUpDown, Info, Square } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { Send, Square } from "lucide-react";
+import { useChatContext } from "@/contexts/ChatContext";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 export default function MessageInput() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [accumulatedContent, setAccumulatedContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   const {
     selectedModel,
@@ -65,24 +61,18 @@ export default function MessageInput() {
       }
 
       const requestBody = {
+        conversationId: currentConversation.id,
         message,
         model: selectedModel,
-        conversationId: currentConversation.id,
+        stream: stream,
         voiceProfileId: activeVoiceProfile?.id,
-        stream,
       };
 
       if (stream) {
         const controller = new AbortController();
         setAbortController(controller);
-        
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-          credentials: "include",
+
+        const response = await apiRequest("POST", "/api/chat", requestBody, {
           signal: controller.signal,
         });
 
@@ -150,9 +140,10 @@ export default function MessageInput() {
           setAbortController(null);
           setAccumulatedContent("");
           
-          if (error instanceof Error && error.name === 'AbortError') {
+          if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
             console.log("Streaming aborted by user");
             // Don't show error toast for user-initiated aborts
+            return;
           } else {
             console.error("Streaming error:", error);
             toast({
@@ -172,8 +163,9 @@ export default function MessageInput() {
     onError: (error) => {
       setIsStreaming(false);
       setAbortController(null);
+      setAccumulatedContent("");
       
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
         console.log("Request aborted by user");
         // Don't show error toast for user-initiated aborts
         return;
@@ -191,6 +183,7 @@ export default function MessageInput() {
         return;
       }
       
+      console.error("Chat error:", error);
       toast({
         title: "Error",
         description: "Failed to send message",
@@ -207,107 +200,60 @@ export default function MessageInput() {
       await createNewConversation();
     }
 
-    const messageToSend = message.trim();
-    setMessage("");
     setIsStreaming(true);
-
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-
-    // Reset streaming state before sending
-    window.dispatchEvent(new CustomEvent('streamingMessage', { 
-      detail: { reset: true } 
-    }));
-
-    sendMessageMutation.mutate({ message: messageToSend, stream: true });
+    sendMessageMutation.mutate({ 
+      message: message.trim(), 
+      stream: true 
+    });
+    setMessage("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    
-    // Auto-resize textarea
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-    }
-  };
-
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
   }, []);
 
+  const isLoading = sendMessageMutation.isPending || isStreaming;
+
   return (
-    <div className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="relative">
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Message AI Voice Assistant..."
-            className="min-h-[60px] pr-12 resize-none border-slate-200 dark:border-slate-600 focus:ring-green-500 focus:border-green-500"
-            disabled={sendMessageMutation.isPending || isStreaming}
-          />
-          {isStreaming ? (
-            <Button
-              onClick={stopStreaming}
-              size="sm"
-              variant="destructive"
-              className="absolute right-3 bottom-3"
-            >
-              <Square className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSend}
-              disabled={!message.trim() || sendMessageMutation.isPending}
-              size="sm"
-              className="absolute right-3 bottom-3 bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        
-        <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-4">
-            {activeVoiceProfile ? (
-              <div className="flex items-center gap-2">
-                <span>Using:</span>
-                <Badge variant="outline" className="text-xs">
-                  {activeVoiceProfile.name}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 text-green-600 hover:text-green-700 font-medium"
-                >
-                  <ArrowUpDown className="h-3 w-3 mr-1" />
-                  Switch Profile
-                </Button>
-              </div>
-            ) : (
-              <span>No voice profile selected</span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Info className="h-3 w-3" />
-            <span>Press Enter to send, Shift+Enter for new line</span>
-          </div>
-        </div>
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center space-x-2">
+        <Input
+          ref={inputRef}
+          placeholder="Type your message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          disabled={isLoading}
+          className="flex-1"
+        />
+        {isStreaming ? (
+          <Button
+            onClick={stopStreaming}
+            variant="destructive"
+            size="sm"
+            className="px-3"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={!message.trim() || isLoading}
+            size="sm"
+            className="px-3"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
