@@ -194,7 +194,7 @@ export default function MessageList() {
   console.log(`Displaying ${displayMessages.length} messages from chat history`);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-full" style={{ scrollbarWidth: 'thin' }}>
       {displayMessages.length === 0 && !isStreaming ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">
           <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />

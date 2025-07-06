@@ -124,3 +124,5 @@ Changelog:
   - Proper message ordering with timestamps and state management
   - Copy-to-clipboard functionality with hover effects
   - Fixed root cause: missing chat history accumulation in React state
+  - Fixed stale closure issue with local content tracking during streaming
+  - Added scroll bar to chat window for message overflow handling
