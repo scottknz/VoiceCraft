@@ -116,3 +116,10 @@ Changelog:
 - July 06, 2025. Added auto-conversation creation only when NO conversations exist (not just none selected)
 - July 06, 2025. Implemented conversation auto-selection and AI-generated titles
 - July 06, 2025. Added delete conversation functionality with red X hover buttons
+- July 06, 2025. **REBUILT CHAT WINDOW**: Implemented real-time message display (Option 1)
+  - User messages appear immediately when sent
+  - Complete conversation history loads from database
+  - System messages filtered out from UI
+  - AI responses stream in real-time then persist
+  - Proper message ordering with timestamps
+  - Copy-to-clipboard functionality with hover effects

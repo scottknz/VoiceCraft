@@ -68,16 +68,16 @@ export default function MessageInput() {
         throw new Error("No active conversation");
       }
 
-      // First, save the user message to the database
+      // Dispatch user message event for immediate UI display
+      window.dispatchEvent(new CustomEvent('userMessage', { 
+        detail: { message } 
+      }));
+
+      // Save the user message to the database
       await apiRequest("POST", "/api/messages", {
         conversationId: currentConversation.id,
         role: "user",
         content: message,
-      });
-
-      // Refresh messages to show the user message immediately
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations", currentConversation.id, "messages"] 
       });
 
       const requestBody = {
