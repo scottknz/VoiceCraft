@@ -132,6 +132,8 @@ export default function MessageInput() {
                   setIsStreaming(false);
                   setAbortController(null);
                   
+                  console.log(`Streaming complete. Accumulated content length: ${accumulatedContent.length}`);
+                  
                   // Dispatch done event with full response for chat history
                   window.dispatchEvent(new CustomEvent('streamingMessage', { 
                     detail: { content: "", done: true, fullResponse: accumulatedContent } 

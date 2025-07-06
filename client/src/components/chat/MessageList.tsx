@@ -26,10 +26,23 @@ export default function MessageList() {
   useEffect(() => {
     if (messages.length > 0) {
       console.log(`Loaded ${messages.length} messages from database, updating chat history`);
-      // Only update if we don't have these messages already
-      if (chatHistory.length !== messages.length) {
-        setChatHistory(messages);
-      }
+      
+      // Smart merge: keep temporary messages but prefer database versions
+      setChatHistory(prevHistory => {
+        const dbMessageIds = new Set(messages.map(m => m.id));
+        
+        // Keep temporary messages (with high timestamp IDs) that aren't in database yet
+        const tempMessages = prevHistory.filter(m => 
+          m.id > Date.now() - 10000 && !dbMessageIds.has(m.id)
+        );
+        
+        // Combine database messages with any remaining temporary messages
+        return [...messages, ...tempMessages].sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+      });
     } else if (messages.length === 0 && currentConversation) {
       // Only clear if we actually have messages to clear
       if (chatHistory.length > 0) {
@@ -37,7 +50,7 @@ export default function MessageList() {
         setChatHistory([]);
       }
     }
-  }, [messages, currentConversation, chatHistory.length]);
+  }, [messages, currentConversation]);
 
   // Debug: Log chat history changes
   useEffect(() => {
