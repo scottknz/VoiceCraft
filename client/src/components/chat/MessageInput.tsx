@@ -18,6 +18,7 @@ export default function MessageInput() {
   const [message, setMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [accumulatedContent, setAccumulatedContent] = useState("");
   
   const {
     selectedModel,
@@ -26,11 +27,30 @@ export default function MessageInput() {
     createNewConversation,
   } = useChatContext();
 
-  const stopStreaming = () => {
-    if (abortController) {
+  const stopStreaming = async () => {
+    if (abortController && currentConversation) {
+      // Save accumulated content before aborting
+      if (accumulatedContent.trim()) {
+        try {
+          await apiRequest("POST", "/api/messages", {
+            conversationId: currentConversation.id,
+            role: "assistant",
+            content: accumulatedContent.trim(),
+          });
+          // Refresh messages
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/conversations", currentConversation.id, "messages"] 
+          });
+        } catch (error) {
+          console.error("Failed to save partial response:", error);
+        }
+      }
+      
       abortController.abort();
       setAbortController(null);
       setIsStreaming(false);
+      setAccumulatedContent("");
+      
       // Dispatch stop event to reset UI
       window.dispatchEvent(new CustomEvent('streamingMessage', { 
         detail: { content: "", done: true, reset: true } 
@@ -82,7 +102,7 @@ export default function MessageInput() {
         const reader = response.body?.getReader();
         if (!reader) return;
 
-        let accumulatedContent = "";
+        setAccumulatedContent(""); // Reset at start
         
         try {
           while (true) {
@@ -98,6 +118,7 @@ export default function MessageInput() {
                 if (data === '[DONE]') {
                   setIsStreaming(false);
                   setAbortController(null);
+                  setAccumulatedContent("");
                   // Refresh messages to get the complete saved message
                   queryClient.invalidateQueries({ 
                     queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
@@ -112,7 +133,7 @@ export default function MessageInput() {
                 try {
                   const parsed = JSON.parse(data);
                   if (parsed.content) {
-                    accumulatedContent += parsed.content;
+                    setAccumulatedContent(prev => prev + parsed.content);
                     // Dispatch streaming event
                     window.dispatchEvent(new CustomEvent('streamingMessage', { 
                       detail: { content: parsed.content, done: false } 
@@ -127,6 +148,7 @@ export default function MessageInput() {
         } catch (error) {
           setIsStreaming(false);
           setAbortController(null);
+          setAccumulatedContent("");
           
           if (error instanceof Error && error.name === 'AbortError') {
             console.log("Streaming aborted by user");

@@ -77,6 +77,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const messageData = insertMessageSchema.parse(req.body);
+      const message = await storage.addMessage(messageData);
+      res.json(message);
+    } catch (error) {
+      console.error("Error saving message:", error);
+      res.status(500).json({ message: "Failed to save message" });
+    }
+  });
+
   // Chat completion routes
   const chatSchema = z.object({
     message: z.string(),
