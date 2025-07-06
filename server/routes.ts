@@ -305,9 +305,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const messages = [{ role: "user" as const, parts: [{ text: message }] }];
         
         if (stream) {
+          console.log(`Starting Gemini streaming for model: ${model}`);
           res.setHeader('Content-Type', 'text/event-stream');
           res.setHeader('Cache-Control', 'no-cache');
           res.setHeader('Connection', 'keep-alive');
+          res.setHeader('Access-Control-Allow-Origin', '*');
           
           const responseStream = await createGeminiChatStream({
             model: model as "gemini-2.5-pro" | "gemini-2.5-flash",

@@ -230,6 +230,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addMessage(message: InsertMessage): Promise<Message> {
+    // Validate message content to prevent empty messages
+    if (!message.content || !message.content.trim()) {
+      console.warn("Attempted to save empty message, using fallback content");
+      message.content = message.role === "assistant" 
+        ? "I apologize, but I couldn't generate a response. Please try again."
+        : "Empty message";
+    }
+    
     const [newMessage] = await db
       .insert(messages)
       .values(message)

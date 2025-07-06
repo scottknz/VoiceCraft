@@ -135,7 +135,7 @@ export default function MessageList() {
                   }`}>
                     <CardContent className="p-4">
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content}
+                        {message.content || (message.role === "assistant" ? "Error loading response..." : "Empty message")}
                       </div>
                     </CardContent>
                   </Card>
