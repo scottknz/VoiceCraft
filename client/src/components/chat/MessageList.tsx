@@ -16,7 +16,7 @@ export default function MessageList() {
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
 
-  const { data: messages = [], isLoading } = useQuery<Message[]>({
+  const { data: messages = [], isLoading, refetch } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentConversation?.id, "messages"],
     enabled: !!currentConversation,
     refetchInterval: isStreaming ? 1000 : false, // Poll while streaming
@@ -35,41 +35,14 @@ export default function MessageList() {
       }
       
       if (done) {
-        // Use setQueryData to persist the accumulated streaming message
-        queryClient.setQueryData(
-          ["/api/conversations", currentConversation?.id, "messages"],
-          (oldData: Message[] | undefined) => {
-            if (!oldData) return oldData;
-            
-            // Check if streaming message already exists as a saved message
-            const hasStreamingMessage = streamingMessage.trim();
-            if (!hasStreamingMessage) return oldData;
-            
-            // Create a temporary message object for the completed streaming message
-            const streamMessage: Message = {
-              id: Date.now(), // Temporary ID, will be replaced when real data loads
-              conversationId: currentConversation?.id || 0,
-              role: "assistant",
-              content: streamingMessage,
-              model: null,
-              voiceProfileId: null,
-              createdAt: new Date()
-            };
-            
-            return [...oldData, streamMessage];
-          }
-        );
-        
         setStreamingMessage("");
         setIsStreaming(false);
         
-        // Invalidate after a delay to load the real saved message
+        // Directly refetch messages to show the saved complete message
         setTimeout(() => {
-          queryClient.invalidateQueries({ 
-            queryKey: ["/api/conversations", currentConversation?.id, "messages"],
-            refetchType: 'all'
-          });
-        }, 500);
+          refetch();
+        }, 200);
+        
         return;
       }
       

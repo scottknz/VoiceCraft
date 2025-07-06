@@ -203,7 +203,7 @@ Generate only the title, nothing else:`;
       const conversation = await storage.getConversation(conversationId);
       console.log(`Checking conversation for title generation. Current title: "${conversation?.title}"`);
       
-      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation') || conversation.title === 'New Chat')) {
+      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation') || conversation.title === 'New Chat' || conversation.title.includes('/'))) {
         console.log("Generating title for conversation...");
         try {
           const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
