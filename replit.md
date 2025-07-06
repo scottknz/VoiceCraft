@@ -114,3 +114,5 @@ Changelog:
 - July 06, 2025. Improved chat system with proper message persistence and streaming
 - July 06, 2025. Simplified conversation list to minimalist ChatGPT-style interface
 - July 06, 2025. Added auto-conversation creation only when NO conversations exist (not just none selected)
+- July 06, 2025. Implemented conversation auto-selection and AI-generated titles
+- July 06, 2025. Added delete conversation functionality with red X hover buttons

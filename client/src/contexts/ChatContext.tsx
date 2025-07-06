@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,6 +26,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+
+  // Query conversations to auto-select the most recent one
+  const { data: conversations = [] } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
+    enabled: !!user,
+    retry: false,
+  });
+
+  // Auto-select the most recent conversation when conversations load
+  useEffect(() => {
+    if (conversations.length > 0 && !currentConversation) {
+      setCurrentConversation(conversations[0]); // First item is most recent due to orderBy updatedAt desc
+    }
+  }, [conversations, currentConversation]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {

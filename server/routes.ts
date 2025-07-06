@@ -8,7 +8,7 @@ import {
   insertConversationSchema, 
   insertMessageSchema 
 } from "@shared/schema";
-import { createChatStream } from "./services/chat";
+import { createChatStream, createChatResponse } from "./services/chat";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -88,6 +88,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/conversations/:id/generate-title', isAuthenticated, async (req: any, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const messages = await storage.getConversationMessages(conversationId);
+      
+      if (messages.length < 2) {
+        res.status(400).json({ message: "Need at least 2 messages to generate title" });
+        return;
+      }
+
+      // Get first user message and AI response
+      const userMessage = messages.find(m => m.role === 'user')?.content || "";
+      const aiMessage = messages.find(m => m.role === 'assistant')?.content || "";
+      
+      // Generate title using AI
+      const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
+
+User: ${userMessage.substring(0, 200)}
+Assistant: ${aiMessage.substring(0, 200)}
+
+Generate only the title, nothing else:`;
+
+      const { createChatResponse } = await import('./services/chat');
+      
+      const title = await createChatResponse({
+        model: "gemini-2.5-flash",
+        messages: [{ role: "user", content: titlePrompt }],
+        temperature: 0.7,
+        maxTokens: 10
+      });
+
+      // Clean up the title - remove quotes and trim
+      const cleanTitle = title.replace(/['"]/g, '').trim();
+      
+      // Update conversation with new title
+      await storage.updateConversation(conversationId, { title: cleanTitle });
+      
+      res.json({ title: cleanTitle });
+    } catch (error) {
+      console.error("Error generating title:", error);
+      res.status(500).json({ message: "Failed to generate title" });
+    }
+  });
+
   app.post('/api/messages', isAuthenticated, async (req: any, res) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
@@ -154,6 +198,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: fullResponse
       });
       console.log(`Message saved with ID: ${savedMessage.id}`);
+
+      // Generate title if this is the first AI response (conversation needs a title)
+      const conversation = await storage.getConversation(conversationId);
+      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation'))) {
+        try {
+          const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
+
+User: ${message.substring(0, 200)}
+Assistant: ${fullResponse.substring(0, 200)}
+
+Generate only the title, nothing else:`;
+
+          const title = await createChatResponse({
+            model: "gemini-2.5-flash",
+            messages: [{ role: "user", content: titlePrompt }],
+            temperature: 0.7,
+            maxTokens: 10
+          });
+
+          const cleanTitle = title.replace(/['"]/g, '').trim();
+          await storage.updateConversation(conversationId, { title: cleanTitle });
+          console.log(`Generated title: "${cleanTitle}"`);
+        } catch (error) {
+          console.error("Failed to generate title:", error);
+        }
+      }
       
       const reader = responseStream.getReader();
       
