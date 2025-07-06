@@ -45,15 +45,10 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
 
     console.log(`Calling Gemini API with prompt: "${prompt.substring(0, 100)}..."`);
     
-    // For now, return non-streaming response wrapped in a stream
+    // Use the pattern from the blueprint
     const response = await genAI.models.generateContent({
       model: options.model,
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }]
-        }
-      ],
+      contents: prompt,
       config: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxOutputTokens || 1000,
@@ -61,23 +56,10 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
     });
     
     console.log(`Gemini API response status:`, response);
-    console.log(`Gemini response candidates:`, JSON.stringify(response.candidates, null, 2));
-
-    // Try different ways to extract text from the response
-    let fullText = "";
+    console.log(`Gemini response text property:`, response.text);
     
-    if (response.candidates && response.candidates.length > 0) {
-      const candidate = response.candidates[0];
-      if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
-        fullText = candidate.content.parts[0].text || "";
-      }
-    }
-    
-    // Fallback to direct text property
-    if (!fullText) {
-      fullText = response.text || "";
-    }
-    
+    // Use the response.text property as shown in the blueprint
+    const fullText = response.text || "";
     console.log(`Gemini response received: "${fullText}" (length: ${fullText.length})`);
     
     const stream = new ReadableStream({
