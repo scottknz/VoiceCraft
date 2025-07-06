@@ -48,7 +48,12 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
     // For now, return non-streaming response wrapped in a stream
     const response = await genAI.models.generateContent({
       model: options.model,
-      contents: prompt,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ],
       config: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxOutputTokens || 1000,
