@@ -65,7 +65,12 @@ export default function MessageInput() {
         throw new Error("No active conversation");
       }
 
-      // Server-first: Save user message to database first
+      // Show user message immediately in chat history
+      window.dispatchEvent(new CustomEvent('userMessage', { 
+        detail: { message } 
+      }));
+
+      // Server-first: Save user message to database
       console.log("Saving user message to database...");
       await apiRequest("POST", "/api/messages", {
         conversationId: currentConversation.id,

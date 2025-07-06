@@ -13,20 +13,61 @@ export default function MessageList() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [chatHistory, setChatHistory] = useState<Message[]>([]);
 
-  // Server-first approach: always fetch from database
-  const { data: messages = [], isLoading, refetch } = useQuery<Message[]>({
+  // Fetch messages from database and maintain in state
+  const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/conversations", currentConversation?.id, "messages"],
     enabled: !!currentConversation,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
   });
 
-  // Listen for events to trigger database refresh
+  // Update chat history when messages are loaded
   useEffect(() => {
+    if (messages.length > 0) {
+      console.log(`Loaded ${messages.length} messages from database, updating chat history`);
+      setChatHistory(messages);
+    } else if (messages.length === 0 && currentConversation) {
+      // Clear chat history when switching to empty conversation
+      setChatHistory([]);
+    }
+  }, [messages, currentConversation]);
+
+  // Clear chat history when conversation changes
+  useEffect(() => {
+    setChatHistory([]);
+    setStreamingMessage("");
+    setIsStreaming(false);
+  }, [currentConversation?.id]);
+
+  // Listen for events to manage chat history
+  useEffect(() => {
+    const handleUserMessage = (event: CustomEvent) => {
+      const { message } = event.detail;
+      console.log("Adding user message to chat history");
+      
+      // Add user message to chat history immediately
+      const userMessage: Message = {
+        id: Date.now(), // Temporary ID
+        conversationId: currentConversation?.id || 0,
+        role: "user",
+        content: message,
+        model: null,
+        voiceProfileId: null,
+        createdAt: new Date()
+      };
+      
+      setChatHistory(prev => [...prev, userMessage]);
+    };
+
     const handleMessageSaved = (event: CustomEvent) => {
-      console.log("Message saved to database - refreshing display");
-      // Refresh from database after message is saved
-      refetch();
+      const { type } = event.detail;
+      console.log(`${type} message saved to database - refreshing from server`);
+      
+      // Refetch from database to get the real saved messages with proper IDs
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
+      });
     };
 
     const handleStreamingMessage = (event: CustomEvent) => {
@@ -41,7 +82,6 @@ export default function MessageList() {
       if (done) {
         setStreamingMessage("");
         setIsStreaming(false);
-        // Don't refresh here - wait for server to confirm save
         return;
       }
       
@@ -49,14 +89,16 @@ export default function MessageList() {
       setStreamingMessage(prev => prev + content);
     };
 
+    window.addEventListener('userMessage', handleUserMessage as EventListener);
     window.addEventListener('messageSaved', handleMessageSaved as EventListener);
     window.addEventListener('streamingMessage', handleStreamingMessage as EventListener);
 
     return () => {
+      window.removeEventListener('userMessage', handleUserMessage as EventListener);
       window.removeEventListener('messageSaved', handleMessageSaved as EventListener);
       window.removeEventListener('streamingMessage', handleStreamingMessage as EventListener);
     };
-  }, [refetch]);
+  }, [currentConversation?.id]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -107,8 +149,8 @@ export default function MessageList() {
     );
   }
 
-  // Filter system messages and sort by creation time
-  const displayMessages = (messages as Message[])
+  // Filter system messages and sort by creation time from chatHistory
+  const displayMessages = chatHistory
     .filter(message => message.role !== "system")
     .sort((a, b) => {
       if (!a.createdAt) return 1;
@@ -116,7 +158,7 @@ export default function MessageList() {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
 
-  console.log(`Displaying ${displayMessages.length} messages from database`);
+  console.log(`Displaying ${displayMessages.length} messages from chat history`);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">

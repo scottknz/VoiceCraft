@@ -116,10 +116,11 @@ Changelog:
 - July 06, 2025. Added auto-conversation creation only when NO conversations exist (not just none selected)
 - July 06, 2025. Implemented conversation auto-selection and AI-generated titles
 - July 06, 2025. Added delete conversation functionality with red X hover buttons
-- July 06, 2025. **REBUILT CHAT WINDOW**: Changed to server-first display (Option 2)
-  - User messages: save to database first, then display from database
-  - AI responses: stream in memory while processing, save to database when complete, then display database version
+- July 06, 2025. **REBUILT CHAT WINDOW**: Fixed disappearing messages with proper chat history state
+  - Implemented React state array to accumulate messages (chatHistory)
+  - User messages: appear immediately in UI, then saved to database
+  - AI responses: stream in memory while processing, save to database when complete, refresh state
   - System messages filtered out from UI
-  - Database-first consistency ensures no message loss
-  - Proper message ordering with timestamps
+  - Proper message ordering with timestamps and state management
   - Copy-to-clipboard functionality with hover effects
+  - Fixed root cause: missing chat history accumulation in React state
