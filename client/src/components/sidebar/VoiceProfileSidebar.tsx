@@ -5,7 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import VoiceProfileModal from "./VoiceProfileModal";
+import ConversationList from "./ConversationList";
 import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -25,18 +27,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
   const { data: profiles = [], isLoading } = useQuery<VoiceProfile[]>({
     queryKey: ["/api/voice-profiles"],
     enabled: !!user,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   const activateProfileMutation = useMutation({
@@ -62,6 +52,7 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
         }, 500);
         return;
       }
+      
       toast({
         title: "Error",
         description: "Failed to activate voice profile",
@@ -93,6 +84,7 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
         }, 500);
         return;
       }
+      
       toast({
         title: "Error",
         description: "Failed to delete voice profile",
@@ -107,153 +99,213 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (hours < 1) return "Just now";
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
+  const openCreateModal = () => {
+    setSelectedProfile(null);
+    setShowModal(true);
   };
 
-  return (
-    <>
-      <div className="w-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Voice Profiles</h1>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="lg:hidden"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+  const openEditModal = (profile: VoiceProfile) => {
+    setSelectedProfile(profile);
+    setShowModal(true);
+  };
+
+  const handleDeleteProfile = (profileId: number) => {
+    if (confirm("Are you sure you want to delete this voice profile?")) {
+      deleteProfileMutation.mutate(profileId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3" />
           </div>
-          
-          <Button
-            onClick={() => setShowModal(true)}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Voice Profile
-          </Button>
+        </div>
+        <div className="flex-1 p-4 space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            AI Assistant
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Voice profiles and conversations
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="h-8 w-8 p-0"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Conversations Section */}
+        <div className="py-4">
+          <ConversationList />
         </div>
 
-        {/* Profiles List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardContent className="p-3">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded mb-2"></div>
-                    <div className="h-3 bg-slate-200 dark:bg-slate-600 rounded mb-2"></div>
-                    <div className="h-3 bg-slate-200 dark:bg-slate-600 rounded w-3/4"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : profiles.length === 0 ? (
-            <div className="text-center py-8">
-              <User className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-500 dark:text-slate-400 mb-2">No voice profiles yet</p>
-              <p className="text-sm text-slate-400 dark:text-slate-500">
-                Create your first voice profile to get started
-              </p>
-            </div>
-          ) : (
-            profiles.map((profile) => (
-              <Card
-                key={profile.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  profile.isActive 
-                    ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
-                    : "hover:border-green-300"
-                }`}
-                onClick={() => handleProfileClick(profile)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-slate-900 dark:text-white">{profile.name}</h3>
-                    <div className="flex items-center gap-1">
-                      {profile.isActive && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          Active
-                        </Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedProfile(profile);
-                        }}
-                      >
-                        <MoreVertical className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  {profile.description && (
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2 line-clamp-2">
-                      {profile.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <FileText className="h-3 w-3" />
-                    <span>{profile.samplesCount || 0} samples</span>
-                    <Calendar className="h-3 w-3 ml-2" />
-                    <span>Updated {formatDate(profile.updatedAt || profile.createdAt)}</span>
-                  </div>
+        <Separator />
+
+        {/* Voice Profiles Section */}
+        <div className="py-4">
+          <div className="flex items-center justify-between px-4 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Voice Profiles
+            </h3>
+            <Button
+              onClick={openCreateModal}
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-2 px-4">
+            {profiles.length === 0 ? (
+              <Card className="border-dashed border-2">
+                <CardContent className="p-6 text-center">
+                  <User className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500 mb-3">No voice profiles yet</p>
+                  <Button onClick={openCreateModal} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Profile
+                  </Button>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-medium">
-              {user?.firstName?.[0] || user?.email?.[0] || "U"}
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm text-slate-900 dark:text-white">
-                {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.email}
-              </p>
-              {user?.email && user?.firstName && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
-              )}
-            </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Settings className="h-4 w-4" />
-            </Button>
+            ) : (
+              profiles.map((profile) => (
+                <Card
+                  key={profile.id}
+                  className={`cursor-pointer transition-all hover:shadow-md group ${
+                    profile.isActive
+                      ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
+                      : ""
+                  }`}
+                  onClick={() => handleProfileClick(profile)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm truncate">
+                            {profile.name}
+                          </h4>
+                          {profile.isActive && (
+                            <Badge variant="default" className="text-xs">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+                          {profile.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {profile.samplesCount || 0} samples
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {profile.createdAt
+                              ? new Date(profile.createdAt).toLocaleDateString()
+                              : "Unknown"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(profile);
+                          }}
+                        >
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            onClick={() => window.location.href = "/api/logout"}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
         </div>
       </div>
 
-      {/* Voice Profile Modal */}
-      <VoiceProfileModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        profile={selectedProfile}
-      />
-    </>
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
+                {user && typeof user === 'object' && 'firstName' in user && user.firstName
+                  ? user.firstName.charAt(0).toUpperCase()
+                  : user && typeof user === 'object' && 'email' in user && user.email
+                  ? user.email.charAt(0).toUpperCase()
+                  : "U"}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {user && typeof user === 'object' && 'firstName' in user && user.firstName
+                  ? `${user.firstName}${user && 'lastName' in user && user.lastName ? ` ${user.lastName}` : ''}`
+                  : user && typeof user === 'object' && 'email' in user && user.email
+                  ? user.email
+                  : "User"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {user && typeof user === 'object' && 'email' in user && user.email ? user.email : "No email"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                window.location.href = "/api/logout";
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <VoiceProfileModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          profile={selectedProfile}
+        />
+      )}
+    </div>
   );
 }
