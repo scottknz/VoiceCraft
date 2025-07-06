@@ -17,17 +17,28 @@ export default function MessageList() {
 
   // Fetch messages from database and maintain in state
   const { data: messages = [], isLoading } = useQuery<Message[]>({
-    queryKey: ["/api/conversations", currentConversation?.id, "messages"],
+    queryKey: [`/api/conversations/${currentConversation?.id}/messages`],
     enabled: !!currentConversation,
     staleTime: 0,
   });
 
-  // Update chat history when conversation changes or when we have no messages
+  // Track the current conversation ID to detect conversation changes
+  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
+
+  // Update chat history when conversation changes or messages are loaded
   useEffect(() => {
+    const conversationId = currentConversation?.id || null;
+    const conversationChanged = conversationId !== currentConversationId;
+    
+    if (conversationChanged) {
+      console.log(`Conversation changed from ${currentConversationId} to ${conversationId}`);
+      setCurrentConversationId(conversationId);
+    }
+    
     if (messages.length > 0) {
       console.log(`Loaded ${messages.length} messages from database, updating chat history`);
-      // Only update chat history if it's empty (new conversation) or if we don't have any messages yet
-      if (chatHistory.length === 0) {
+      // Update chat history when conversation changes or when we have no messages
+      if (chatHistory.length === 0 || conversationChanged) {
         setChatHistory(messages);
       }
     } else if (messages.length === 0 && currentConversation) {
@@ -37,7 +48,7 @@ export default function MessageList() {
         setChatHistory([]);
       }
     }
-  }, [messages, currentConversation]);
+  }, [messages, currentConversation, currentConversationId, chatHistory.length]);
 
   // Debug: Log chat history changes
   useEffect(() => {

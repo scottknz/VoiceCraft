@@ -69,7 +69,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
     try {
       const conversationId = parseInt(req.params.id);
+      console.log(`Fetching messages for conversation ${conversationId}`);
       const messages = await storage.getConversationMessages(conversationId);
+      console.log(`Found ${messages.length} messages:`, messages.map(m => ({id: m.id, role: m.role, content: m.content?.substring(0, 50) + '...'})));
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);

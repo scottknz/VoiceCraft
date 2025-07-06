@@ -128,3 +128,5 @@ Changelog:
   - Added scroll bar to chat window for message overflow handling
   - Fixed message persistence by disabling automatic database refresh after saves
   - Simplified merge logic to prevent race conditions between temp and database messages
+  - Fixed conversation history loading by correcting API query URL construction
+  - Conversation switching now properly displays full chat history for each session
