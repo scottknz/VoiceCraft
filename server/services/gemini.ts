@@ -43,6 +43,8 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
       ? `${options.systemInstruction}\n\nUser: ${lastMessage.parts[0].text}`
       : lastMessage.parts[0].text;
 
+    console.log(`Calling Gemini API with prompt: "${prompt.substring(0, 100)}..."`);
+    
     // For now, return non-streaming response wrapped in a stream
     const response = await genAI.models.generateContent({
       model: options.model,
@@ -52,14 +54,25 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
         maxOutputTokens: options.maxOutputTokens || 1000,
       },
     });
+    
+    console.log(`Gemini API response status:`, response);
 
     const fullText = response.text || "";
+    console.log(`Gemini response received: "${fullText}" (length: ${fullText.length})`);
     
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          if (!fullText || fullText.trim() === "") {
+            console.error("Gemini returned empty response");
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: "I apologize, but I'm having trouble generating a response right now. Please try again." })}\n\n`));
+            controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+            controller.close();
+            return;
+          }
+
           // Simulate streaming by sending text in chunks
-          const words = fullText.split(' ');
+          const words = fullText.split(' ').filter(word => word.length > 0);
           for (let i = 0; i < words.length; i++) {
             const word = words[i] + (i < words.length - 1 ? ' ' : '');
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: word })}\n\n`));
