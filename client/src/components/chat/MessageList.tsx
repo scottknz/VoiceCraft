@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, User, Bot, Clock } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import type { Message } from "@shared/schema";
 
 export default function MessageList() {
@@ -19,6 +20,7 @@ export default function MessageList() {
     queryKey: ["/api/conversations", currentConversation?.id, "messages"],
     enabled: !!currentConversation,
     refetchInterval: isStreaming ? 1000 : false, // Poll while streaming
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
   });
 
   // Handle streaming messages
@@ -35,6 +37,12 @@ export default function MessageList() {
       if (done) {
         setStreamingMessage("");
         setIsStreaming(false);
+        // Force refetch messages to show the saved complete message with a small delay
+        setTimeout(() => {
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
+          });
+        }, 100);
         return;
       }
       
