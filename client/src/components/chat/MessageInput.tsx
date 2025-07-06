@@ -117,6 +117,7 @@ export default function MessageInput() {
         if (!reader) return;
 
         setAccumulatedContent(""); // Reset at start
+        let localAccumulated = ""; // Track locally to avoid stale state
         
         try {
           while (true) {
@@ -133,11 +134,11 @@ export default function MessageInput() {
                   setIsStreaming(false);
                   setAbortController(null);
                   
-                  console.log(`Streaming complete. Accumulated content length: ${accumulatedContent.length}`);
+                  console.log(`Streaming complete. Accumulated content length: ${localAccumulated.length}`);
                   
                   // Dispatch done event with full response for chat history
                   window.dispatchEvent(new CustomEvent('streamingMessage', { 
-                    detail: { content: "", done: true, fullResponse: accumulatedContent } 
+                    detail: { content: "", done: true, fullResponse: localAccumulated } 
                   }));
                   
                   setAccumulatedContent("");
@@ -156,11 +157,10 @@ export default function MessageInput() {
                 try {
                   const parsed = JSON.parse(data);
                   if (parsed.content) {
-                    setAccumulatedContent((prev: string) => {
-                      const newContent = prev + parsed.content;
-                      console.log(`Accumulating content: ${prev.length} + ${parsed.content.length} = ${newContent.length}`);
-                      return newContent;
-                    });
+                    localAccumulated += parsed.content;
+                    console.log(`Accumulating content: ${localAccumulated.length - parsed.content.length} + ${parsed.content.length} = ${localAccumulated.length}`);
+                    
+                    setAccumulatedContent((prev: string) => prev + parsed.content);
                     // Dispatch streaming event
                     window.dispatchEvent(new CustomEvent('streamingMessage', { 
                       detail: { content: parsed.content, done: false } 
