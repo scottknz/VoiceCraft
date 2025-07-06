@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Send, ArrowUpDown, Info } from "lucide-react";
+import { Send, ArrowUpDown, Info, Square } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -17,6 +17,7 @@ export default function MessageInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   
   const {
     selectedModel,
@@ -24,6 +25,18 @@ export default function MessageInput() {
     currentConversation,
     createNewConversation,
   } = useChatContext();
+
+  const stopStreaming = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setIsStreaming(false);
+      // Dispatch stop event to reset UI
+      window.dispatchEvent(new CustomEvent('streamingMessage', { 
+        detail: { content: "", done: true, reset: true } 
+      }));
+    }
+  };
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ message, stream }: { message: string; stream: boolean }) => {
@@ -40,6 +53,9 @@ export default function MessageInput() {
       };
 
       if (stream) {
+        const controller = new AbortController();
+        setAbortController(controller);
+        
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
@@ -47,6 +63,7 @@ export default function MessageInput() {
           },
           body: JSON.stringify(requestBody),
           credentials: "include",
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -80,6 +97,7 @@ export default function MessageInput() {
                 const data = line.slice(6);
                 if (data === '[DONE]') {
                   setIsStreaming(false);
+                  setAbortController(null);
                   // Refresh messages to get the complete saved message
                   queryClient.invalidateQueries({ 
                     queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
@@ -204,14 +222,25 @@ export default function MessageInput() {
             className="min-h-[60px] pr-12 resize-none border-slate-200 dark:border-slate-600 focus:ring-green-500 focus:border-green-500"
             disabled={sendMessageMutation.isPending || isStreaming}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!message.trim() || sendMessageMutation.isPending || isStreaming}
-            size="sm"
-            className="absolute right-3 bottom-3 bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+          {isStreaming ? (
+            <Button
+              onClick={stopStreaming}
+              size="sm"
+              variant="destructive"
+              className="absolute right-3 bottom-3"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSend}
+              disabled={!message.trim() || sendMessageMutation.isPending}
+              size="sm"
+              className="absolute right-3 bottom-3 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         
         <div className="flex items-center justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">

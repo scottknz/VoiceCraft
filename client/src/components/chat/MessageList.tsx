@@ -112,7 +112,7 @@ export default function MessageList() {
           </div>
         ) : (
           <>
-            {messages.map((message, index) => (
+            {messages.filter(message => message.content && message.content.trim()).map((message, index) => (
               <div
                 key={message.id}
                 className={`flex gap-3 ${
@@ -135,7 +135,7 @@ export default function MessageList() {
                   }`}>
                     <CardContent className="p-4">
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content || (message.role === "assistant" ? "Error loading response..." : "Empty message")}
+                        {message.content}
                       </div>
                     </CardContent>
                   </Card>
