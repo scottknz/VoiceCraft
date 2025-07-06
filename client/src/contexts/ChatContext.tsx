@@ -25,6 +25,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {
@@ -56,8 +57,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   });
 
   const createNewConversation = async () => {
-    const title = `Chat ${new Date().toLocaleString()}`;
-    await createConversationMutation.mutateAsync({ title });
+    if (createConversationMutation.isPending || isCreatingConversation) return;
+    setIsCreatingConversation(true);
+    try {
+      const title = `Chat ${new Date().toLocaleString()}`;
+      await createConversationMutation.mutateAsync({ title });
+    } finally {
+      setIsCreatingConversation(false);
+    }
   };
 
   // Load saved preferences

@@ -27,24 +27,12 @@ export default function ChatInterface() {
   const { data: profiles = [] } = useQuery<VoiceProfile[]>({
     queryKey: ["/api/voice-profiles"],
     enabled: !!user,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   // Set active voice profile based on profiles data
   useEffect(() => {
-    if (profiles.length > 0 && !activeVoiceProfile) {
-      const activeProfile = profiles.find(p => p.isActive);
+    if (Array.isArray(profiles) && profiles.length > 0 && !activeVoiceProfile) {
+      const activeProfile = profiles.find((p: VoiceProfile) => p.isActive);
       if (activeProfile) {
         setActiveVoiceProfile(activeProfile);
       }
@@ -56,7 +44,7 @@ export default function ChatInterface() {
     if (user && !currentConversation) {
       createNewConversation();
     }
-  }, [user, currentConversation, createNewConversation]);
+  }, [user]); // Remove dependencies that cause loops
 
   const handleNewChat = () => {
     createNewConversation();
