@@ -49,6 +49,7 @@ export interface IStorage {
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
   updateConversation(id: number, conversation: Partial<InsertConversation>): Promise<Conversation>;
+  deleteConversation(id: number): Promise<void>;
 
   // Message operations
   getConversationMessages(conversationId: number): Promise<Message[]>;
@@ -218,6 +219,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.id, id))
       .returning();
     return updatedConversation;
+  }
+
+  async deleteConversation(id: number): Promise<void> {
+    // Delete all messages first (due to foreign key constraint)
+    await db.delete(messages).where(eq(messages.conversationId, id));
+    // Then delete the conversation
+    await db.delete(conversations).where(eq(conversations.id, id));
   }
 
   // Message operations

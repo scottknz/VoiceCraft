@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare, Plus, X } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +54,48 @@ export default function ConversationList() {
 
   const handleConversationClick = (conversation: Conversation) => {
     setCurrentConversation(conversation);
+  };
+
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId: number) => {
+      await apiRequest("DELETE", `/api/conversations/${conversationId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({
+        title: "Success",
+        description: "Conversation deleted successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete conversation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteConversation = (conversationId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // If we're deleting the current conversation, clear it
+    if (currentConversation?.id === conversationId) {
+      setCurrentConversation(null);
+    }
+    
+    deleteConversationMutation.mutate(conversationId);
   };
 
 
@@ -107,7 +149,7 @@ export default function ConversationList() {
           conversations.map((conversation) => (
             <Card
               key={conversation.id}
-              className={`cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-800 border-0 shadow-none ${
+              className={`group cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-800 border-0 shadow-none ${
                 currentConversation?.id === conversation.id
                   ? "bg-gray-100 dark:bg-gray-800"
                   : ""
@@ -116,16 +158,25 @@ export default function ConversationList() {
             >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
                     <h4 className="text-sm truncate text-gray-900 dark:text-gray-100">
                       {conversation.title || `Conversation ${conversation.id}`}
                     </h4>
+                    {currentConversation?.id === conversation.id && (
+                      <Badge variant="secondary" className="text-xs">
+                        Active
+                      </Badge>
+                    )}
                   </div>
-                  {currentConversation?.id === conversation.id && (
-                    <Badge variant="secondary" className="text-xs ml-2">
-                      Active
-                    </Badge>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 dark:hover:bg-red-900"
+                    onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                    disabled={deleteConversationMutation.isPending}
+                  >
+                    <X className="h-3 w-3 text-red-500" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
