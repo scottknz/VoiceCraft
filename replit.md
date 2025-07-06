@@ -109,3 +109,6 @@ Changelog:
 - July 06, 2025. Database schema deployed with PostgreSQL tables
 - July 06, 2025. OpenAI and Gemini API integration completed
 - July 06, 2025. Real-time streaming chat responses implemented
+- July 06, 2025. Restructured sidebar: Voice Profiles on top, Conversations underneath
+- July 06, 2025. Fixed automatic conversation creation - now only via user plus button
+- July 06, 2025. Improved chat system with proper message persistence and streaming

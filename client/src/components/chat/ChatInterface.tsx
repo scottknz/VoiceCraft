@@ -39,12 +39,7 @@ export default function ChatInterface() {
     }
   }, [profiles, activeVoiceProfile, setActiveVoiceProfile]);
 
-  // Create initial conversation if none exists
-  useEffect(() => {
-    if (user && !currentConversation) {
-      createNewConversation();
-    }
-  }, [user]); // Remove dependencies that cause loops
+  // Don't automatically create conversations - user must explicitly create them
 
   const handleNewChat = () => {
     createNewConversation();

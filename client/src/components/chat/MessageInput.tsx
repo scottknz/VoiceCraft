@@ -195,9 +195,14 @@ export default function MessageInput() {
   const handleSend = async () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
 
-    // Create conversation if none exists
+    // Don't send if no conversation is selected
     if (!currentConversation) {
-      await createNewConversation();
+      toast({
+        title: "No conversation selected",
+        description: "Please create a new conversation first",
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsStreaming(true);

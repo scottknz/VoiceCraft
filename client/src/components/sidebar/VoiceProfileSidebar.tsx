@@ -157,13 +157,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Conversations Section */}
-        <div className="py-4">
-          <ConversationList />
-        </div>
-
-        <Separator />
-
         {/* Voice Profiles Section */}
         <div className="py-4">
           <div className="flex items-center justify-between px-4 mb-4">
@@ -251,6 +244,13 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
               ))
             )}
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Conversations Section */}
+        <div className="py-4">
+          <ConversationList />
         </div>
       </div>
 
