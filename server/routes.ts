@@ -201,7 +201,10 @@ Generate only the title, nothing else:`;
 
       // Generate title if this is the first AI response (conversation needs a title)
       const conversation = await storage.getConversation(conversationId);
-      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation'))) {
+      console.log(`Checking conversation for title generation. Current title: "${conversation?.title}"`);
+      
+      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation') || conversation.title === 'New Chat')) {
+        console.log("Generating title for conversation...");
         try {
           const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
 
@@ -210,6 +213,7 @@ Assistant: ${fullResponse.substring(0, 200)}
 
 Generate only the title, nothing else:`;
 
+          console.log("Calling AI to generate title...");
           const title = await createChatResponse({
             model: "gemini-2.5-flash",
             messages: [{ role: "user", content: titlePrompt }],
@@ -218,11 +222,15 @@ Generate only the title, nothing else:`;
           });
 
           const cleanTitle = title.replace(/['"]/g, '').trim();
+          console.log(`Generated raw title: "${title}", clean title: "${cleanTitle}"`);
+          
           await storage.updateConversation(conversationId, { title: cleanTitle });
-          console.log(`Generated title: "${cleanTitle}"`);
+          console.log(`Title updated in database: "${cleanTitle}"`);
         } catch (error) {
           console.error("Failed to generate title:", error);
         }
+      } else {
+        console.log("Title generation skipped - conversation already has title or conditions not met");
       }
       
       const reader = responseStream.getReader();

@@ -35,14 +35,41 @@ export default function MessageList() {
       }
       
       if (done) {
+        // Use setQueryData to persist the accumulated streaming message
+        queryClient.setQueryData(
+          ["/api/conversations", currentConversation?.id, "messages"],
+          (oldData: Message[] | undefined) => {
+            if (!oldData) return oldData;
+            
+            // Check if streaming message already exists as a saved message
+            const hasStreamingMessage = streamingMessage.trim();
+            if (!hasStreamingMessage) return oldData;
+            
+            // Create a temporary message object for the completed streaming message
+            const streamMessage: Message = {
+              id: Date.now(), // Temporary ID, will be replaced when real data loads
+              conversationId: currentConversation?.id || 0,
+              role: "assistant",
+              content: streamingMessage,
+              model: null,
+              voiceProfileId: null,
+              createdAt: new Date()
+            };
+            
+            return [...oldData, streamMessage];
+          }
+        );
+        
         setStreamingMessage("");
         setIsStreaming(false);
-        // Force refetch messages to show the saved complete message with a small delay
+        
+        // Invalidate after a delay to load the real saved message
         setTimeout(() => {
           queryClient.invalidateQueries({ 
-            queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
+            queryKey: ["/api/conversations", currentConversation?.id, "messages"],
+            refetchType: 'all'
           });
-        }, 100);
+        }, 500);
         return;
       }
       
