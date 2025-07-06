@@ -131,12 +131,13 @@ export default function MessageInput() {
                 if (data === '[DONE]') {
                   setIsStreaming(false);
                   setAbortController(null);
-                  setAccumulatedContent("");
                   
-                  // Dispatch done event to stop streaming UI
+                  // Dispatch done event with full response for chat history
                   window.dispatchEvent(new CustomEvent('streamingMessage', { 
-                    detail: { content: "", done: true } 
+                    detail: { content: "", done: true, fullResponse: accumulatedContent } 
                   }));
+                  
+                  setAccumulatedContent("");
                   
                   // Wait a moment for server to save, then notify database refresh
                   setTimeout(() => {

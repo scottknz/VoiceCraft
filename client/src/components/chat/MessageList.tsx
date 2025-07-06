@@ -22,23 +22,27 @@ export default function MessageList() {
     staleTime: 0,
   });
 
-  // Update chat history when messages are loaded
+  // Update chat history when messages are loaded from database
   useEffect(() => {
     if (messages.length > 0) {
       console.log(`Loaded ${messages.length} messages from database, updating chat history`);
-      setChatHistory(messages);
+      // Only update if we don't have these messages already
+      if (chatHistory.length !== messages.length) {
+        setChatHistory(messages);
+      }
     } else if (messages.length === 0 && currentConversation) {
-      // Clear chat history when switching to empty conversation
-      setChatHistory([]);
+      // Only clear if we actually have messages to clear
+      if (chatHistory.length > 0) {
+        console.log("Clearing chat history for empty conversation");
+        setChatHistory([]);
+      }
     }
-  }, [messages, currentConversation]);
+  }, [messages, currentConversation, chatHistory.length]);
 
-  // Clear chat history when conversation changes
+  // Debug: Log chat history changes
   useEffect(() => {
-    setChatHistory([]);
-    setStreamingMessage("");
-    setIsStreaming(false);
-  }, [currentConversation?.id]);
+    console.log(`Chat history updated: ${chatHistory.length} messages`);
+  }, [chatHistory]);
 
   // Listen for events to manage chat history
   useEffect(() => {
@@ -71,7 +75,7 @@ export default function MessageList() {
     };
 
     const handleStreamingMessage = (event: CustomEvent) => {
-      const { content, done, reset } = event.detail;
+      const { content, done, reset, fullResponse } = event.detail;
       
       if (reset) {
         setStreamingMessage("");
@@ -82,6 +86,22 @@ export default function MessageList() {
       if (done) {
         setStreamingMessage("");
         setIsStreaming(false);
+        
+        // Add the complete AI response to chat history
+        if (fullResponse) {
+          console.log("Adding AI response to chat history");
+          const aiMessage: Message = {
+            id: Date.now(), // Temporary ID
+            conversationId: currentConversation?.id || 0,
+            role: "assistant",
+            content: fullResponse,
+            model: null,
+            voiceProfileId: null,
+            createdAt: new Date()
+          };
+          
+          setChatHistory(prev => [...prev, aiMessage]);
+        }
         return;
       }
       
