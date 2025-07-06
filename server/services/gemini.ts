@@ -56,7 +56,7 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
     });
     
     console.log(`Gemini API response status:`, response);
-    console.log(`Gemini response candidates:`, response.candidates);
+    console.log(`Gemini response candidates:`, JSON.stringify(response.candidates, null, 2));
 
     // Try different ways to extract text from the response
     let fullText = "";
