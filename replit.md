@@ -126,3 +126,5 @@ Changelog:
   - Fixed root cause: missing chat history accumulation in React state
   - Fixed stale closure issue with local content tracking during streaming
   - Added scroll bar to chat window for message overflow handling
+  - Fixed message persistence by disabling automatic database refresh after saves
+  - Simplified merge logic to prevent race conditions between temp and database messages

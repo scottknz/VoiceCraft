@@ -22,27 +22,14 @@ export default function MessageList() {
     staleTime: 0,
   });
 
-  // Update chat history when messages are loaded from database
+  // Update chat history when conversation changes or when we have no messages
   useEffect(() => {
     if (messages.length > 0) {
       console.log(`Loaded ${messages.length} messages from database, updating chat history`);
-      
-      // Smart merge: keep temporary messages but prefer database versions
-      setChatHistory(prevHistory => {
-        const dbMessageIds = new Set(messages.map(m => m.id));
-        
-        // Keep temporary messages (with high timestamp IDs) that aren't in database yet
-        const tempMessages = prevHistory.filter(m => 
-          m.id > Date.now() - 10000 && !dbMessageIds.has(m.id)
-        );
-        
-        // Combine database messages with any remaining temporary messages
-        return [...messages, ...tempMessages].sort((a, b) => {
-          if (!a.createdAt) return 1;
-          if (!b.createdAt) return -1;
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        });
-      });
+      // Only update chat history if it's empty (new conversation) or if we don't have any messages yet
+      if (chatHistory.length === 0) {
+        setChatHistory(messages);
+      }
     } else if (messages.length === 0 && currentConversation) {
       // Only clear if we actually have messages to clear
       if (chatHistory.length > 0) {
@@ -79,12 +66,12 @@ export default function MessageList() {
 
     const handleMessageSaved = (event: CustomEvent) => {
       const { type } = event.detail;
-      console.log(`${type} message saved to database - refreshing from server`);
+      console.log(`${type} message saved to database - NOT refreshing to preserve temp messages`);
       
-      // Refetch from database to get the real saved messages with proper IDs
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
-      });
+      // Don't automatically refresh - this was causing message loss
+      // queryClient.invalidateQueries({ 
+      //   queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
+      // });
     };
 
     const handleStreamingMessage = (event: CustomEvent) => {
