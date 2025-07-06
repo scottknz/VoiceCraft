@@ -13,12 +13,14 @@ export default function MessageList() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [optimisticUserMessage, setOptimisticUserMessage] = useState<Message | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
 
-  const { data: messages = [], isLoading, refetch } = useQuery<Message[]>({
-    queryKey: ["/api/conversations", currentConversation?.id, "messages"],
+  // Query for messages with forced refresh capability
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ["/api/conversations", currentConversation?.id, "messages", forceRefresh],
     enabled: !!currentConversation,
     staleTime: 0,
+    cacheTime: 0, // Don't cache messages
   });
 
   // Listen for streaming events
@@ -36,10 +38,11 @@ export default function MessageList() {
         setStreamingMessage("");
         setIsStreaming(false);
         
-        // Refetch messages to get the saved AI response
+        // Force refresh messages by incrementing the refresh counter
+        console.log("Streaming complete - forcing message refresh...");
         setTimeout(() => {
-          refetch();
-        }, 200);
+          setForceRefresh(prev => prev + 1);
+        }, 500);
         
         return;
       }
@@ -51,24 +54,11 @@ export default function MessageList() {
     // Listen for new user messages
     const handleUserMessage = (event: CustomEvent) => {
       const { message } = event.detail;
+      console.log("User message received:", message);
       
-      // Show optimistic user message immediately
-      const optimisticMsg: Message = {
-        id: Date.now(),
-        conversationId: currentConversation?.id || 0,
-        role: "user",
-        content: message,
-        model: null,
-        voiceProfileId: null,
-        createdAt: new Date()
-      };
-      
-      setOptimisticUserMessage(optimisticMsg);
-      
-      // Clear optimistic message after server data loads
+      // Force refresh after user message is sent
       setTimeout(() => {
-        setOptimisticUserMessage(null);
-        refetch();
+        setForceRefresh(prev => prev + 1);
       }, 1000);
     };
 
@@ -79,12 +69,12 @@ export default function MessageList() {
       window.removeEventListener('streamingMessage', handleStreamingMessage as EventListener);
       window.removeEventListener('userMessage', handleUserMessage as EventListener);
     };
-  }, [currentConversation?.id, refetch]);
+  }, [currentConversation?.id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingMessage, optimisticUserMessage]);
+  }, [messages, streamingMessage]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -130,22 +120,16 @@ export default function MessageList() {
     );
   }
 
-  // Combine all messages for display
-  const allMessages = [...messages];
-  
-  // Add optimistic user message if it exists and isn't already saved
-  if (optimisticUserMessage && !messages.some(m => m.content === optimisticUserMessage.content)) {
-    allMessages.push(optimisticUserMessage);
-  }
-
   // Filter out system messages and sort by creation time
-  const displayMessages = allMessages
+  const displayMessages = (messages as Message[])
     .filter(message => message.role !== "system")
     .sort((a, b) => {
       if (!a.createdAt) return 1;
       if (!b.createdAt) return -1;
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
+
+  console.log(`Displaying ${displayMessages.length} messages (${messages.length} total loaded)`);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -158,7 +142,7 @@ export default function MessageList() {
         <>
           {displayMessages.map((message) => (
             <MessageBubble
-              key={message.id}
+              key={`${message.id}-${message.createdAt}`}
               message={message}
               onCopy={copyToClipboard}
               formatTime={formatTime}

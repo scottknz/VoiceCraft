@@ -41,10 +41,7 @@ export default function MessageInput() {
             role: "assistant",
             content: accumulatedContent.trim(),
           });
-          // Refresh messages
-          queryClient.invalidateQueries({ 
-            queryKey: ["/api/conversations", currentConversation.id, "messages"] 
-          });
+          // No refresh here - causes race conditions
         } catch (error) {
           console.error("Failed to save partial response:", error);
         }
@@ -129,10 +126,7 @@ export default function MessageInput() {
                   setIsStreaming(false);
                   setAbortController(null);
                   setAccumulatedContent("");
-                  // Refresh messages to get the complete saved message
-                  queryClient.invalidateQueries({ 
-                    queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
-                  });
+                  // No invalidation here - let MessageList handle refetch
                   // Dispatch done event
                   window.dispatchEvent(new CustomEvent('streamingMessage', { 
                     detail: { content: "", done: true } 
@@ -174,10 +168,7 @@ export default function MessageInput() {
           }
         }
       } else {
-        // Handle non-streaming response
-        queryClient.invalidateQueries({ 
-          queryKey: ["/api/conversations", currentConversation?.id, "messages"] 
-        });
+        // Handle non-streaming response - let MessageList handle refresh
       }
     },
     onError: (error) => {
