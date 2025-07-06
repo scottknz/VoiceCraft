@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus, Clock, MoreVertical } from "lucide-react";
+import { MessageSquare, Plus } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,19 +56,7 @@ export default function ConversationList() {
     setCurrentConversation(conversation);
   };
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return "";
-    const now = new Date();
-    const diffInHours = (now.getTime() - new Date(date).getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) {
-      return "now";
-    } else if (diffInHours < 24) {
-      return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else {
-      return new Date(date).toLocaleDateString();
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -119,42 +107,25 @@ export default function ConversationList() {
           conversations.map((conversation) => (
             <Card
               key={conversation.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
+              className={`cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-800 border-0 shadow-none ${
                 currentConversation?.id === conversation.id
-                  ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
+                  ? "bg-gray-100 dark:bg-gray-800"
                   : ""
               }`}
               onClick={() => handleConversationClick(conversation)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-sm truncate">
-                        {conversation.title || `Conversation ${conversation.id}`}
-                      </h4>
-                      {currentConversation?.id === conversation.id && (
-                        <Badge variant="secondary" className="text-xs">
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Clock className="h-3 w-3" />
-                      <span>{formatDate(conversation.createdAt)}</span>
-                    </div>
+                    <h4 className="text-sm truncate text-gray-900 dark:text-gray-100">
+                      {conversation.title || `Conversation ${conversation.id}`}
+                    </h4>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle menu actions
-                    }}
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                  </Button>
+                  {currentConversation?.id === conversation.id && (
+                    <Badge variant="secondary" className="text-xs ml-2">
+                      Active
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
