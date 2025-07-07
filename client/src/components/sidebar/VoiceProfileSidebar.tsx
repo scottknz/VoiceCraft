@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DetailedVoiceProfileModal from "./DetailedVoiceProfileModal";
 import ConversationList from "./ConversationList";
-import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, FileText, Calendar, MoreVertical, User, Settings, X, RefreshCw, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { VoiceProfile } from "@shared/schema";
@@ -341,16 +341,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                window.location.href = "/api/logout";
-              }}
-            >
-              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
