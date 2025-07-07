@@ -57,13 +57,20 @@ export function useChat(conversationId: number | null) {
           return prev;
         }
         
-        // Otherwise sync with database
+        // Check if we need to update - prevent unnecessary re-renders
         const formattedMessages: ChatMessage[] = dbMessages.map(msg => ({
           ...msg,
           id: msg.id,
           createdAt: new Date(msg.createdAt),
         }));
-        return formattedMessages;
+        
+        // Only update if messages have actually changed
+        if (prev.length !== formattedMessages.length || 
+            prev.some((msg, index) => msg.id !== formattedMessages[index]?.id)) {
+          return formattedMessages;
+        }
+        
+        return prev;
       });
     } else if (conversationId && localMessages.length === 0) {
       setLocalMessages([]);
