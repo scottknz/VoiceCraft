@@ -53,11 +53,20 @@ async function createGeminiResponse(options: ChatOptions): Promise<string> {
     ? `${options.systemInstruction}\n\n${lastMessage.content}`
     : lastMessage.content;
 
-  console.log(`Calling Gemini with prompt: "${prompt.substring(0, 100)}..."`);
+  // Generate voice profile instructions if profile exists
+  let voiceInstructions = "";
+  if (options.voiceProfile) {
+    const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
+    voiceInstructions = generateVoiceSystemPrompt(options.voiceProfile);
+    console.log("Generated voice instructions:", voiceInstructions);
+  }
+  
+  const fullPrompt = voiceInstructions ? `${voiceInstructions}\n\nUser: ${lastMessage.content}` : prompt;
+  console.log(`Calling Gemini with full prompt: "${fullPrompt.substring(0, 200)}..."`);
 
   const response = await genAI.models.generateContent({
     model: options.model,
-    contents: prompt,
+    contents: fullPrompt,
   });
 
   const text = response.text || "";

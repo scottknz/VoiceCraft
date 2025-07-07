@@ -166,6 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let voiceProfile = null;
       if (voiceProfileId) {
         voiceProfile = await storage.getVoiceProfile(voiceProfileId);
+        console.log("Voice profile loaded:", JSON.stringify(voiceProfile, null, 2));
       }
 
       const response = await createChatResponse({
