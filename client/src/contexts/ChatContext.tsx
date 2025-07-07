@@ -44,10 +44,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  // Auto-select the most recent conversation when conversations load
+  // Auto-select the most recent conversation when conversations load, but handle deletions
   useEffect(() => {
-    if (conversations.length > 0 && !currentConversation) {
-      setCurrentConversation(conversations[0]); // First item is most recent due to orderBy updatedAt desc
+    if (conversations.length > 0) {
+      // If no current conversation, select the first one (most recent)
+      if (!currentConversation) {
+        setCurrentConversation(conversations[0]);
+      } else {
+        // If current conversation was deleted, select the first one or clear if none
+        const stillExists = conversations.find(c => c.id === currentConversation.id);
+        if (!stillExists) {
+          setCurrentConversation(conversations[0] || null);
+        }
+      }
+    } else if (currentConversation) {
+      // If all conversations are deleted, clear current conversation
+      setCurrentConversation(null);
     }
   }, [conversations, currentConversation]);
 
