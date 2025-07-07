@@ -211,15 +211,17 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 // Insert schemas
 export const insertVoiceProfileSchema = createInsertSchema(voiceProfiles).omit({
   id: true,
+  userId: true, // We'll add this separately
   createdAt: true,
   updatedAt: true,
 }).extend({
-  // Transform empty strings to null for optional fields
-  description: z.string().optional().transform(val => val === "" ? null : val),
-  purpose: z.string().optional().transform(val => val === "" ? null : val),
-  structurePreferences: z.string().optional().transform(val => val === "" ? null : val),
-  moralTone: z.string().optional().transform(val => val === "" ? null : val),
-  preferredStance: z.string().optional().transform(val => val === "" ? null : val),
+  // Handle optional fields that can be null or empty strings
+  description: z.string().nullable().optional(),
+  purpose: z.string().nullable().optional(),
+  structurePreferences: z.string().nullable().optional(),
+  moralTone: z.string().nullable().optional(),
+  preferredStance: z.string().nullable().optional(),
+  humourLevel: z.string().nullable().optional(),
 });
 
 export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({
