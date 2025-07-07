@@ -213,6 +213,13 @@ export const insertVoiceProfileSchema = createInsertSchema(voiceProfiles).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Transform empty strings to null for optional fields
+  description: z.string().optional().transform(val => val === "" ? null : val),
+  purpose: z.string().optional().transform(val => val === "" ? null : val),
+  structurePreferences: z.string().optional().transform(val => val === "" ? null : val),
+  moralTone: z.string().optional().transform(val => val === "" ? null : val),
+  preferredStance: z.string().optional().transform(val => val === "" ? null : val),
 });
 
 export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({

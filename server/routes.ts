@@ -29,8 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/voice-profiles", requireAuth, async (req, res) => {
     try {
+      console.log("Request body:", JSON.stringify(req.body, null, 2));
       const result = insertVoiceProfileSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("Validation errors:", JSON.stringify(result.error.errors, null, 2));
         return res.status(400).json({ message: "Invalid voice profile data", errors: result.error.errors });
       }
 
