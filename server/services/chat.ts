@@ -43,6 +43,11 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
 }
 
 async function createGeminiResponse(options: ChatOptions): Promise<string> {
+  // Validate messages array
+  if (!options.messages || !Array.isArray(options.messages) || options.messages.length === 0) {
+    throw new Error("Messages array is required and must not be empty");
+  }
+
   const lastMessage = options.messages[options.messages.length - 1];
   const prompt = options.systemInstruction 
     ? `${options.systemInstruction}\n\n${lastMessage.content}`

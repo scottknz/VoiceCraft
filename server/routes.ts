@@ -139,7 +139,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat", requireAuth, async (req: any, res) => {
     try {
       const { messages, model, voiceProfileId } = req.body;
+      console.log("Chat request body:", JSON.stringify({ messages, model, voiceProfileId }, null, 2));
+      
       const userId = req.user.id.toString();
+      
+      // Validate messages array
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        return res.status(400).json({ message: "Messages array is required and must not be empty" });
+      }
       
       let voiceProfile = null;
       if (voiceProfileId) {
