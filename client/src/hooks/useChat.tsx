@@ -50,7 +50,7 @@ export function useChat(conversationId: number | null) {
 
   // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ message, stream = false }: SendMessageOptions) => {
+    mutationFn: async ({ message, stream = true }: SendMessageOptions) => {
       if (!conversationId || !user) {
         throw new Error("No active conversation or user");
       }
@@ -87,9 +87,12 @@ export function useChat(conversationId: number | null) {
       );
 
       // 4. Get AI response
+      console.log("About to get AI response, stream:", stream);
       if (stream) {
+        console.log("Using streaming response");
         return handleStreamingResponse(conversationId, message);
       } else {
+        console.log("Using regular response");
         return handleRegularResponse(conversationId, message);
       }
     },
@@ -255,7 +258,8 @@ export function useChat(conversationId: number | null) {
     }
   }, []);
 
-  const sendMessage = useCallback((message: string, stream = false) => {
+  const sendMessage = useCallback((message: string, stream = true) => {
+    console.log("sendMessage called with stream:", stream);
     sendMessageMutation.mutate({ message, stream });
   }, [sendMessageMutation]);
 
