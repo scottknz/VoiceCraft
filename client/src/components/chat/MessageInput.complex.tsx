@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
+import { useChat } from "@/hooks/useChat";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 
 export default function MessageInput() {
@@ -15,14 +15,16 @@ export default function MessageInput() {
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const {
     activeVoiceProfile,
     currentConversation,
     createNewConversation,
-    selectedModel,
   } = useChatContext();
+
+  const { sendMessage, stopStreaming, isSending, isStreaming } = useChat(
+    currentConversation?.id || null
+  );
 
   // Query to check if any conversations exist
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -56,57 +58,8 @@ export default function MessageInput() {
     autoCreateConversation();
   }, [conversations.length, currentConversation, isCreatingConversation, createNewConversation, toast]);
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageText: string) => {
-      if (!currentConversation) {
-        throw new Error("No active conversation");
-      }
-
-      // Save user message first
-      await apiRequest("POST", "/api/messages", {
-        conversationId: currentConversation.id,
-        role: "user",
-        content: messageText,
-      });
-
-      // Get AI response
-      const response = await apiRequest("POST", "/api/chat", {
-        conversationId: currentConversation.id,
-        message: messageText,
-        model: selectedModel,
-        voiceProfileId: activeVoiceProfile?.id,
-      });
-
-      return response.json();
-    },
-    onSuccess: () => {
-      // Invalidate and refetch messages
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/conversations/${currentConversation?.id}/messages`] 
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to send message:", error);
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Session expired",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        window.location.href = "/api/login";
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to send message. Please try again.",
-          variant: "destructive",
-        });
-      }
-    },
-  });
-
   const handleSend = async () => {
-    if (!message.trim() || sendMessageMutation.isPending) return;
+    if (!message.trim() || isSending) return;
 
     // Ensure we have a conversation
     if (!currentConversation) {
@@ -121,7 +74,28 @@ export default function MessageInput() {
     const messageText = message.trim();
     setMessage("");
 
-    sendMessageMutation.mutate(messageText);
+    try {
+      // Send with streaming by default for better UX
+      await sendMessage(messageText, true);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Session expired",
+          description: "Please log in again",
+          variant: "destructive",
+        });
+        window.location.href = "/api/login";
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        });
+        // Restore message on error
+        setMessage(messageText);
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -129,6 +103,10 @@ export default function MessageInput() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleMessageChange = (value: string) => {
+    setMessage(value);
   };
 
   // Focus input when conversation changes
@@ -158,24 +136,35 @@ export default function MessageInput() {
           placeholder={
             isCreatingConversation 
               ? "Creating conversation..." 
-              : sendMessageMutation.isPending
+              : isSending
               ? "Sending..."
               : "Type your message..."
           }
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => handleMessageChange(e.target.value)}
           onKeyPress={handleKeyPress}
-          disabled={sendMessageMutation.isPending || isCreatingConversation}
+          disabled={isSending || isCreatingConversation}
           className="flex-1"
         />
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || sendMessageMutation.isPending || isCreatingConversation}
-          size="sm"
-          className="px-3"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isStreaming ? (
+          <Button
+            onClick={stopStreaming}
+            variant="destructive"
+            size="sm"
+            className="px-3"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={!message.trim() || isSending || isCreatingConversation}
+            size="sm"
+            className="px-3"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

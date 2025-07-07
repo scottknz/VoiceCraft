@@ -118,6 +118,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Messages endpoint - creates a new message
+  app.post("/api/messages", requireAuth, async (req: any, res) => {
+    try {
+      const { conversationId, role, content, model, voiceProfileId } = req.body;
+      const userId = req.user.id.toString();
+
+      // Validate required fields
+      if (!conversationId || !role || !content) {
+        return res.status(400).json({ message: "Conversation ID, role, and content are required" });
+      }
+
+      // Validate user owns the conversation
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found or access denied" });
+      }
+
+      // Create message
+      const message = await storage.addMessage({
+        conversationId,
+        role: role as "user" | "assistant",
+        content,
+        model: model || null,
+        voiceProfileId: voiceProfileId || null,
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ message: "Failed to create message" });
+    }
+  });
+
   app.post("/api/conversations/:id/messages", requireAuth, async (req: any, res) => {
     try {
       const conversationId = parseInt(req.params.id);

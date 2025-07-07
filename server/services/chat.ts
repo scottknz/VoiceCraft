@@ -111,7 +111,7 @@ async function createOpenAIResponse(options: ChatOptions): Promise<string> {
   return text;
 }
 
-export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: string }> {
+export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: Promise<string> }> {
   try {
     // For now, get the complete response and simulate streaming
     const fullResponse = await createChatResponse(options);
