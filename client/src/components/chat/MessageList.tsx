@@ -28,21 +28,22 @@ export default function MessageList() {
   // Update chat history when conversation changes or messages are loaded
   useEffect(() => {
     const conversationId = currentConversation?.id || null;
+    const conversationChanged = conversationId !== currentConversationId;
     
-    // Track conversation changes
-    if (conversationId !== currentConversationId) {
+    if (conversationChanged) {
       console.log(`Conversation changed from ${currentConversationId} to ${conversationId}`);
       setCurrentConversationId(conversationId);
     }
     
-    // Always update chat history with latest messages from database
-    // This ensures we have the most current data
     if (messages.length > 0) {
       console.log(`Loaded ${messages.length} messages from database, updating chat history`);
-      setChatHistory(messages);
-    } else if (messages.length === 0 && currentConversation) {
-      // Only clear if we're switching to a truly empty conversation
-      console.log("Empty conversation, clearing chat history");
+      // Update chat history when conversation changes or when we have no messages
+      if (chatHistory.length === 0 || conversationChanged) {
+        setChatHistory(messages);
+      }
+    } else if (messages.length === 0 && currentConversation && conversationChanged) {
+      // Only clear if we're switching to a different empty conversation
+      console.log("Clearing chat history for empty conversation");
       setChatHistory([]);
     }
   }, [messages, currentConversation, currentConversationId, chatHistory.length]);
