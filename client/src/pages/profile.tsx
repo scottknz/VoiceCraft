@@ -59,13 +59,7 @@ export default function Profile() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/auth/profile', {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return await apiRequest('PATCH', '/api/auth/profile', data);
     },
     onSuccess: (updatedUser) => {
       console.log('Profile update successful, updated user:', updatedUser);
@@ -88,13 +82,7 @@ export default function Profile() {
   // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return await apiRequest('POST', '/api/auth/change-password', data);
     },
     onSuccess: (response: any) => {
       toast({
@@ -129,12 +117,7 @@ export default function Profile() {
   // Send verification email mutation
   const sendVerificationMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/auth/send-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return await apiRequest('POST', '/api/auth/send-verification');
     },
     onSuccess: (response: any) => {
       toast({

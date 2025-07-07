@@ -28,12 +28,13 @@ import { db } from "./db";
 import { eq, desc, and, count } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations for independent authentication
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
   updateUserLoginInfo(userId: string, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User>;
   updateUserProfile(userId: string, profileData: Partial<UpsertUser>): Promise<User>;
-  getUserByEmail(email: string): Promise<User | undefined>;
 
   // Session management
   createUserSession(session: InsertUserSession): Promise<UserSession>;
@@ -82,21 +83,19 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db.select().from(users).where(eq(users.id, parseInt(id)));
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
       .returning();
     return user;
   }
@@ -109,7 +108,7 @@ export class DatabaseStorage implements IStorage {
         loginCount: loginData.loginCount,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, userId))
+      .where(eq(users.id, parseInt(userId)))
       .returning();
     return user;
   }
@@ -121,7 +120,7 @@ export class DatabaseStorage implements IStorage {
         ...profileData,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, userId))
+      .where(eq(users.id, parseInt(userId)))
       .returning();
     return user;
   }

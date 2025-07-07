@@ -25,10 +25,12 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth (Enhanced)
+// User storage table with independent authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  id: serial("id").primaryKey(),
+  username: varchar("username").unique().notNull(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password").notNull(), // Hashed password
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -46,7 +48,7 @@ export const users = pgTable("users", {
 // User sessions table for enhanced session tracking
 export const userSessions = pgTable("user_sessions", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   sessionId: varchar("session_id").notNull().unique(),
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
@@ -58,7 +60,7 @@ export const userSessions = pgTable("user_sessions", {
 // Security events table for audit logging
 export const securityEvents = pgTable("security_events", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
   eventType: varchar("event_type").notNull(), // login, logout, password_change, profile_update, etc.
   ipAddress: varchar("ip_address"),
   userAgent: text("user_agent"),
@@ -70,7 +72,7 @@ export const securityEvents = pgTable("security_events", {
 // Voice profiles table
 export const voiceProfiles = pgTable("voice_profiles", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name").notNull(),
   description: text("description"),
   
@@ -124,7 +126,7 @@ export const embeddings = pgTable("embeddings", {
 // Chat conversations table
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
