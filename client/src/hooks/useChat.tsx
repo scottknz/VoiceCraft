@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +36,7 @@ export function useChat(conversationId: number | null) {
 
   // Clear messages when conversation changes
   useEffect(() => {
+    console.log("Conversation changed to:", conversationId, "- clearing messages");
     setLocalMessages([]);
     setStreamingContent("");
     setIsStreaming(false);
@@ -67,6 +68,7 @@ export function useChat(conversationId: number | null) {
         // Only update if messages have actually changed
         if (prev.length !== formattedMessages.length || 
             prev.some((msg, index) => msg.id !== formattedMessages[index]?.id)) {
+          console.log("Updating messages from database:", formattedMessages.length, "messages");
           return formattedMessages;
         }
         
@@ -312,8 +314,11 @@ export function useChat(conversationId: number | null) {
     sendMessageMutation.mutate({ message, stream });
   }, [sendMessageMutation]);
 
+  // Memoize messages to prevent infinite loops from constant re-renders
+  const memoizedMessages = useMemo(() => localMessages, [localMessages.length, localMessages.map(m => m.id).join(',')]);
+
   return {
-    messages: localMessages,
+    messages: memoizedMessages,
     isLoading,
     isStreaming,
     streamingContent,
