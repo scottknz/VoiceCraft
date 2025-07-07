@@ -113,24 +113,94 @@ async function createOpenAIResponse(options: ChatOptions): Promise<string> {
 
 export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: Promise<string> }> {
   try {
-    // Get the complete response and simulate streaming
-    const fullResponsePromise = createChatResponse(options);
-    const fullResponse = await fullResponsePromise;
+    let fullResponseText = '';
     
-    const stream = new ReadableStream({
-      async start(controller) {
-        const words = fullResponse.split(" ");
-        for (let i = 0; i < words.length; i++) {
-          const word = words[i] + (i < words.length - 1 ? " " : "");
-          // Just encode the text chunk, routes.ts will handle SSE formatting
-          controller.enqueue(new TextEncoder().encode(word));
-          await new Promise(resolve => setTimeout(resolve, 50));
+    if (options.model.startsWith('gemini')) {
+      // Use real Gemini streaming
+      const geminiOptions: import('./gemini').GeminiChatOptions = {
+        model: options.model as "gemini-2.5-pro" | "gemini-2.5-flash",
+        messages: options.messages.map(msg => ({
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text: msg.content }]
+        })),
+        systemInstruction: options.systemInstruction,
+        temperature: options.temperature,
+        maxOutputTokens: options.maxTokens,
+      };
+      
+      const geminiStream = await import('./gemini').then(m => m.createGeminiChatStream(geminiOptions));
+      
+      // Create a new stream that captures the full response
+      let fullResponsePromiseResolve: (value: string) => void;
+      const fullResponsePromise = new Promise<string>((resolve) => {
+        fullResponsePromiseResolve = resolve;
+      });
+      
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = geminiStream.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = new TextDecoder().decode(value);
+              fullResponseText += chunk;
+              controller.enqueue(value);
+            }
+            controller.close();
+            fullResponsePromiseResolve(fullResponseText);
+          } catch (error) {
+            controller.error(error);
+            fullResponsePromiseResolve(fullResponseText || "Error occurred during streaming");
+          } finally {
+            reader.releaseLock();
+          }
         }
-        controller.close();
-      }
-    });
-
-    return { stream, fullResponse: Promise.resolve(fullResponse) };
+      });
+      
+      return { stream, fullResponse: fullResponsePromise };
+      
+    } else {
+      // Use OpenAI streaming
+      const openaiOptions: import('./openai').ChatCompletionOptions = {
+        model: options.model as "gpt-4o" | "gpt-3.5-turbo",
+        messages: options.messages.map(msg => ({
+          role: msg.role as "system" | "user" | "assistant",
+          content: msg.content
+        })),
+        temperature: options.temperature,
+        maxTokens: options.maxTokens,
+        stream: true,
+      };
+      
+      const openaiStream = await import('./openai').then(m => m.createChatCompletionStream(openaiOptions));
+      
+      // Create a new stream that captures the full response
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = openaiStream.getReader();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = new TextDecoder().decode(value);
+              fullResponseText += chunk;
+              controller.enqueue(value);
+            }
+            controller.close();
+          } catch (error) {
+            controller.error(error);
+          } finally {
+            reader.releaseLock();
+          }
+        }
+      });
+      
+      return { stream, fullResponse: Promise.resolve(fullResponseText) };
+    }
+    
   } catch (error) {
     console.error("Chat stream error:", error);
     const errorMessage = "I apologize, but I encountered an error generating a response. Please try again.";

@@ -45,8 +45,10 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
 
     console.log(`Calling Gemini API with prompt: "${prompt.substring(0, 100)}..."`);
     
-    // Use the pattern from the blueprint
-    const response = await genAI.models.generateContent({
+    // Use Gemini's real streaming API
+    console.log("Starting real Gemini streaming...");
+    
+    const result = await genAI.models.generateContentStream({
       model: options.model,
       contents: prompt,
       config: {
@@ -55,35 +57,20 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
       },
     });
     
-    console.log(`Gemini API response status:`, response);
-    console.log(`Gemini response text property:`, response.text);
-    
-    // Use the response.text property as shown in the blueprint
-    const fullText = response.text || "";
-    console.log(`Gemini response received: "${fullText}" (length: ${fullText.length})`);
-    
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          if (!fullText || fullText.trim() === "") {
-            console.error("Gemini returned empty response");
-            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: "I apologize, but I'm having trouble generating a response right now. Please try again." })}\n\n`));
-            controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-            controller.close();
-            return;
+          // Stream real-time chunks from Gemini
+          for await (const chunk of result.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              // Send just the text chunk - routes.ts handles SSE formatting
+              controller.enqueue(new TextEncoder().encode(chunkText));
+            }
           }
-
-          // Simulate streaming by sending text in chunks
-          const words = fullText.split(' ').filter(word => word.length > 0);
-          for (let i = 0; i < words.length; i++) {
-            const word = words[i] + (i < words.length - 1 ? ' ' : '');
-            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: word })}\n\n`));
-            // Small delay to simulate streaming
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
-          controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
+          console.error("Error in Gemini stream:", error);
           controller.error(error);
         }
       },
