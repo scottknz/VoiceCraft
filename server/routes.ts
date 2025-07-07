@@ -135,6 +135,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Regular chat endpoint (non-streaming)
+  app.post("/api/chat", requireAuth, async (req: any, res) => {
+    try {
+      const { messages, model, voiceProfileId } = req.body;
+      const userId = req.user.id.toString();
+      
+      let voiceProfile = null;
+      if (voiceProfileId) {
+        voiceProfile = await storage.getVoiceProfile(voiceProfileId);
+      }
+
+      const response = await createChatResponse({
+        model: model || "gemini-2.5-flash",
+        messages,
+        voiceProfile
+      });
+
+      res.json({ response });
+    } catch (error) {
+      console.error("Error in chat:", error);
+      res.status(500).json({ message: "Failed to process chat request" });
+    }
+  });
+
   // Chat streaming endpoint
   app.post("/api/chat/stream", requireAuth, async (req: any, res) => {
     try {
