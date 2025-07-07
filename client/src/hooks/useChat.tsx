@@ -34,16 +34,31 @@ export function useChat(conversationId: number | null) {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Sync database messages with local state
+  // Sync database messages with local state - but preserve optimistic updates
   useEffect(() => {
     if (dbMessages.length > 0) {
-      const formattedMessages: ChatMessage[] = dbMessages.map(msg => ({
-        ...msg,
-        id: msg.id,
-        createdAt: new Date(msg.createdAt),
-      }));
-      setLocalMessages(formattedMessages);
-    } else if (conversationId) {
+      setLocalMessages(prev => {
+        // If we have temporary/optimistic messages, preserve them
+        const hasOptimisticMessages = prev.some(msg => 
+          msg.id.toString().startsWith('user-') || 
+          msg.id.toString().startsWith('temp-') ||
+          msg.isTemporary
+        );
+        
+        if (hasOptimisticMessages) {
+          // Keep the optimistic messages, don't overwrite
+          return prev;
+        }
+        
+        // Otherwise sync with database
+        const formattedMessages: ChatMessage[] = dbMessages.map(msg => ({
+          ...msg,
+          id: msg.id,
+          createdAt: new Date(msg.createdAt),
+        }));
+        return formattedMessages;
+      });
+    } else if (conversationId && localMessages.length === 0) {
       setLocalMessages([]);
     }
   }, [dbMessages, conversationId]);

@@ -1,16 +1,16 @@
 import { useRef, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bot, User, Copy, CheckCircle2 } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useChat } from "@/hooks/useChat";
 import type { Message } from "@shared/schema";
 
 interface MessageBubbleProps {
-  message: Message;
-  onCopy: (id: number) => void;
+  message: any; // Accept both Message and ChatMessage types
+  onCopy: () => void;
   copiedMessageId: number | null;
   formatTime: (date: Date) => string;
 }
@@ -42,7 +42,7 @@ function MessageBubble({ message, onCopy, copiedMessageId, formatTime }: Message
               <span className={`text-xs ${
                 isUser ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'
               }`}>
-                {formatTime(new Date(message.createdAt))}
+                {formatTime(message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt))}
               </span>
             </div>
             <div className={`text-sm whitespace-pre-wrap ${
@@ -83,24 +83,13 @@ export default function MessageList() {
   const { user } = useAuth();
   const { currentConversation } = useChatContext();
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
-  const [previousConversationId, setPreviousConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], isLoading } = useQuery<Message[]>({
-    queryKey: [`/api/conversations/${currentConversation?.id}/messages`],
-    enabled: !!currentConversation,
-    refetchInterval: 5000, // Poll every 5 seconds for new messages
-  });
+  // Use the optimized messages from useChat that include instant updates
+  const { messages, isLoading, isStreaming } = useChat(currentConversation?.id || null);
 
-  // Track conversation changes to clear messages immediately
-  useEffect(() => {
-    if (currentConversation?.id !== previousConversationId) {
-      setPreviousConversationId(currentConversation?.id || null);
-    }
-  }, [currentConversation?.id, previousConversationId]);
-
-  // Show empty state immediately when switching conversations
-  const displayMessages = currentConversation?.id === previousConversationId ? messages : [];
+  // Messages come from useChat which handles optimistic updates
+  const displayMessages = messages;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -112,7 +101,7 @@ export default function MessageList() {
   };
 
   const copyToClipboard = async (messageId: number) => {
-    const message = displayMessages.find(m => m.id === messageId);
+    const message = displayMessages.find(m => Number(m.id) === messageId);
     if (message) {
       await navigator.clipboard.writeText(message.content);
       setCopiedMessageId(messageId);
@@ -143,8 +132,8 @@ export default function MessageList() {
           {displayMessages.map((message) => (
             <MessageBubble
               key={message.id}
-              message={message}
-              onCopy={copyToClipboard}
+              message={message as Message}
+              onCopy={() => copyToClipboard(Number(message.id))}
               copiedMessageId={copiedMessageId}
               formatTime={formatTime}
             />
