@@ -211,9 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userId = req.user.id;
       
-      // Validate required fields
-      if (!conversationId || !message) {
-        return res.status(400).json({ message: "Conversation ID and message are required" });
+      // Validate conversation access
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found or access denied" });
       }
       
       // Get conversation history to build messages array
@@ -237,31 +238,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Voice profile loaded:", JSON.stringify(voiceProfile, null, 2));
       }
 
-      const response = await createChatResponse({
+      // Set up streaming headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const { stream, fullResponse } = await createChatStream({
         model: model || "gemini-2.5-flash",
         messages,
         voiceProfile
       });
 
-      // Save AI response to database
-      await storage.addMessage({
-        conversationId,
-        role: "assistant",
-        content: response,
-        model: model || "gemini-2.5-flash",
-        voiceProfileId: voiceProfileId || null
-      });
+      // Stream the response
+      const reader = stream.getReader();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = new TextDecoder().decode(value);
+          
+          // Send SSE formatted chunk
+          res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+        }
+        
+        // Send completion signal
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        
+        // Wait for full response and save to database
+        const response = await fullResponse;
+        await storage.addMessage({
+          conversationId,
+          role: "assistant",
+          content: response,
+          model: model || "gemini-2.5-flash",
+          voiceProfileId: voiceProfileId || null
+        });
 
-      // Auto-generate title if conversation doesn't have one and this is first AI response
-      const conversation = await storage.getConversation(conversationId);
-      if (conversation && !conversation.title) {
-        const allMessages = await storage.getConversationMessages(conversationId);
-        // Only generate title if we have both user and AI messages
-        if (allMessages.length >= 2) {
-          try {
-            const firstUserMessage = allMessages.find(m => m.role === "user");
-            if (firstUserMessage) {
-              const titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question and AI response:
+        // Auto-generate title if conversation doesn't have one and this is first AI response
+        const updatedConversation = await storage.getConversation(conversationId);
+        if (updatedConversation && !updatedConversation.title) {
+          const allMessages = await storage.getConversationMessages(conversationId);
+          // Only generate title if we have both user and AI messages
+          if (allMessages.length >= 2) {
+            try {
+              const firstUserMessage = allMessages.find(m => m.role === "user");
+              if (firstUserMessage) {
+                const titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question and AI response:
 
 User: ${firstUserMessage.content}
 
@@ -269,33 +297,36 @@ AI: ${response.substring(0, 200)}...
 
 Respond with only the title, no quotes or additional text.`;
 
-              const titleResponse = await createChatResponse({
-                model: "gemini-2.5-flash",
-                messages: [{ role: "user", content: titlePrompt }],
-              });
+                const titleResponse = await createChatResponse({
+                  model: "gemini-2.5-flash",
+                  messages: [{ role: "user", content: titlePrompt }],
+                });
 
-              const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
-              await storage.updateConversation(conversationId, { title: cleanTitle });
-              console.log(`Auto-generated title for conversation ${conversationId}: ${cleanTitle}`);
+                const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
+                await storage.updateConversation(conversationId, { title: cleanTitle });
+                console.log(`Auto-generated title for conversation ${conversationId}: ${cleanTitle}`);
+              }
+            } catch (titleError) {
+              console.log("Error generating title:", titleError);
             }
-          } catch (titleError) {
-            console.error("Failed to auto-generate title:", titleError);
           }
         }
+        
+        res.end();
+        
+      } catch (error) {
+        console.error("Error in streaming response:", error);
+        res.write(`data: ${JSON.stringify({ error: "Failed to process request" })}\n\n`);
+        res.end();
+      } finally {
+        reader.releaseLock();
       }
-
-      res.json({ response });
+      
     } catch (error) {
       console.error("Error in chat:", error);
       res.status(500).json({ message: "Failed to process chat request" });
     }
   });
-
-  // Improved streaming endpoint
-  app.post("/api/chat/stream", requireAuth, async (req: any, res) => {
-    try {
-      const { conversationId, message, model, voiceProfileId } = req.body;
-      const userId = req.user.id;
       
       // Validate conversation access
       const conversation = await storage.getConversation(conversationId);
