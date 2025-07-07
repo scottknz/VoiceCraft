@@ -71,16 +71,8 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
             if (chunkText) {
               console.log("Gemini chunk received:", chunkText.length, "chars");
               
-              // Split larger chunks into smaller word-based chunks for faster streaming
-              const words = chunkText.split(/(\s+)/); // Keep whitespace
-              for (const word of words) {
-                if (word.trim()) {
-                  controller.enqueue(new TextEncoder().encode(word));
-                  // Remove artificial delay for faster streaming
-                } else {
-                  controller.enqueue(new TextEncoder().encode(word)); // whitespace
-                }
-              }
+              // Stream immediately without further splitting for maximum speed
+              controller.enqueue(new TextEncoder().encode(chunkText));
             }
           }
           controller.close();

@@ -220,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: msg.content
       }));
 
-      // Set up streaming headers
+      // Set up streaming headers immediately
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -228,6 +228,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
+
+      // Send immediate connection confirmation
+      res.write(`data: ${JSON.stringify({ status: "connected" })}\n\n`);
 
       const { stream, fullResponse } = await createChatStream({
         model: model || "gemini-2.5-flash",

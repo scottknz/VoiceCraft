@@ -215,6 +215,11 @@ export function useChat(conversationId: number | null) {
               const parsed = JSON.parse(data);
               console.log("Parsed streaming data:", parsed);
               
+              // Skip status messages
+              if (parsed.status === "connected") {
+                return;
+              }
+              
               if (parsed.done) {
                 console.log("Streaming complete");
                 setIsStreaming(false);
@@ -236,7 +241,7 @@ export function useChat(conversationId: number | null) {
                 accumulatedContent += parsed.content;
                 setStreamingContent(accumulatedContent);
                 
-                // Update temporary message in real-time
+                // Update temporary message in real-time with better performance
                 setLocalMessages(prev => 
                   prev.map(msg => 
                     msg.id === tempAiMessage.id 
