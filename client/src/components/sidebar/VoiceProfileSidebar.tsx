@@ -34,9 +34,10 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
       await apiRequest("POST", `/api/voice-profiles/${profileId}/activate`);
     },
     onSuccess: () => {
+      // Invalidate voice profiles to trigger refetch and update ChatContext
       queryClient.invalidateQueries({ queryKey: ["/api/voice-profiles"] });
       toast({
-        title: "Success",
+        title: "Success", 
         description: "Voice profile activated successfully",
       });
     },

@@ -51,11 +51,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [conversations, currentConversation]);
 
-  // Track active voice profile
+  // Track active voice profile and ensure it updates when profiles change
   useEffect(() => {
     const activeProfile = voiceProfiles.find(profile => profile.isActive);
-    setActiveVoiceProfile(activeProfile || null);
-  }, [voiceProfiles]);
+    if (activeProfile && (!activeVoiceProfile || activeVoiceProfile.id !== activeProfile.id)) {
+      console.log("Setting active voice profile:", activeProfile.name);
+      setActiveVoiceProfile(activeProfile);
+    } else if (!activeProfile && activeVoiceProfile) {
+      console.log("Clearing active voice profile");
+      setActiveVoiceProfile(null);
+    }
+  }, [voiceProfiles, activeVoiceProfile]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {
