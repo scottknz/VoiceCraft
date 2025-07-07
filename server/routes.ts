@@ -75,6 +75,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice profile activation endpoint
+  app.post("/api/voice-profiles/:id/activate", requireAuth, async (req: any, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      await storage.setActiveVoiceProfile(userId, profileId);
+      res.json({ message: "Voice profile activated successfully" });
+    } catch (error) {
+      console.error("Error activating voice profile:", error);
+      res.status(500).json({ message: "Failed to activate voice profile" });
+    }
+  });
+
   // Chat conversation routes
   app.get("/api/conversations", requireAuth, async (req: any, res) => {
     try {
