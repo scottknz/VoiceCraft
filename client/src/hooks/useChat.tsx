@@ -238,9 +238,9 @@ export function useChat(conversationId: number | null) {
                 return { response: accumulatedContent };
               }
               
-              if (parsed.chunk) {
-                console.log("Received chunk:", parsed.chunk);
-                accumulatedContent += parsed.chunk;
+              if (parsed.content) {
+                console.log("Received content chunk:", parsed.content);
+                accumulatedContent += parsed.content;
                 setStreamingContent(accumulatedContent);
                 
                 // Update temporary message in real-time
