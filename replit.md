@@ -143,3 +143,9 @@ Changelog:
   - Messages now persist properly when starting new conversations
   - Fixed race condition between user message display and conversation changes
   - Chat history now always reflects the most current database state
+- July 07, 2025. **IMPLEMENTED VOICE PROFILE BACKEND**: Added complete CRUD API for voice profile management
+  - POST /api/voice-profiles - Create new voice profile with all 5 dimensions
+  - PATCH /api/voice-profiles/:id - Update existing voice profile
+  - DELETE /api/voice-profiles/:id - Delete voice profile
+  - Fixed DetailedVoiceProfileModal mutation to use correct apiRequest syntax
+  - Voice profile creation now saves all form data to database properly

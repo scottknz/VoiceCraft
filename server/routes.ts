@@ -39,6 +39,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/voice-profiles', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = insertVoiceProfileSchema.parse({ 
+        ...req.body, 
+        userId 
+      });
+      const profile = await storage.createVoiceProfile(profileData);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error creating voice profile:", error);
+      res.status(500).json({ message: "Failed to create voice profile" });
+    }
+  });
+
+  app.patch('/api/voice-profiles/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const updateData = insertVoiceProfileSchema.partial().parse(req.body);
+      const profile = await storage.updateVoiceProfile(profileId, updateData);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating voice profile:", error);
+      res.status(500).json({ message: "Failed to update voice profile" });
+    }
+  });
+
+  app.delete('/api/voice-profiles/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      await storage.deleteVoiceProfile(profileId);
+      res.json({ message: "Voice profile deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting voice profile:", error);
+      res.status(500).json({ message: "Failed to delete voice profile" });
+    }
+  });
+
   // Conversation routes
   app.get('/api/conversations', isAuthenticated, async (req: any, res) => {
     try {

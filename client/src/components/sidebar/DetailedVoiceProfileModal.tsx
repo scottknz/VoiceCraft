@@ -84,7 +84,8 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
     mutationFn: async (data: z.infer<typeof formSchema>) => {
       const url = profile ? `/api/voice-profiles/${profile.id}` : "/api/voice-profiles";
       const method = profile ? "PATCH" : "POST";
-      return await apiRequest(url, { method, body: JSON.stringify(data) });
+      const response = await apiRequest(method, url, data);
+      return response.json();
     },
     onSuccess: () => {
       toast({
