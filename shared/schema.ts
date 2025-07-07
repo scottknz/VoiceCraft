@@ -236,8 +236,11 @@ export const insertEmbeddingSchema = createInsertSchema(embeddings).omit({
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
+  userId: true, // We'll add this separately
   createdAt: true,
   updatedAt: true,
+}).extend({
+  title: z.string().nullable().optional(),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({

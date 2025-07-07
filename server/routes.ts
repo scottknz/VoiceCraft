@@ -89,8 +89,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/conversations", requireAuth, async (req, res) => {
     try {
+      console.log("Conversation request body:", JSON.stringify(req.body, null, 2));
+      
       const result = insertConversationSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("Conversation validation errors:", JSON.stringify(result.error.errors, null, 2));
         return res.status(400).json({ message: "Invalid conversation data", errors: result.error.errors });
       }
 
