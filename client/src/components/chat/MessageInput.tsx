@@ -197,7 +197,8 @@ export default function MessageInput() {
         setIsStreaming(false);
         setAbortController(null);
         
-        if (response.response) {
+        console.log("Full response object:", response);
+        if (response && response.response) {
           console.log("Adding AI response to chat history:", response.response);
           window.dispatchEvent(new CustomEvent('streamingMessage', { 
             detail: { content: "", done: true, fullResponse: response.response } 
@@ -210,6 +211,8 @@ export default function MessageInput() {
               detail: { type: 'assistant' } 
             }));
           }, 500);
+        } else {
+          console.error("No response.response found in:", response);
         }
       }
     },
