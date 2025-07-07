@@ -206,14 +206,7 @@ export function useChat(conversationId: number | null) {
                 )
               );
               
-              // Save final response to database
-              await apiRequest("POST", "/api/messages", {
-                conversationId,
-                role: "assistant",
-                content: accumulatedContent,
-                model: selectedModel,
-                voiceProfileId: activeVoiceProfile?.id,
-              });
+              // No need to save here - backend already saves after streaming
 
               return { response: accumulatedContent };
             }

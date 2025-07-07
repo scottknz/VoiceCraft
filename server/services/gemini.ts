@@ -65,12 +65,23 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
           // Get streaming result from Gemini
           const result = await genAI.models.generateContentStream(requestOptions);
           
-          // Stream text chunks as they arrive
+          // Stream text chunks as they arrive with word-level granularity
           for await (const chunk of result) {
             const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
             if (chunkText) {
               console.log("Gemini chunk received:", chunkText.length, "chars");
-              controller.enqueue(new TextEncoder().encode(chunkText));
+              
+              // Split larger chunks into smaller word-based chunks for faster streaming
+              const words = chunkText.split(/(\s+)/); // Keep whitespace
+              for (const word of words) {
+                if (word.trim()) {
+                  controller.enqueue(new TextEncoder().encode(word));
+                  // Small delay for smoother visual effect
+                  await new Promise(resolve => setTimeout(resolve, 10));
+                } else {
+                  controller.enqueue(new TextEncoder().encode(word)); // whitespace
+                }
+              }
             }
           }
           controller.close();

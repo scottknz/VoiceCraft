@@ -254,14 +254,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Send completion signal
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         
-        // Save to database - use accumulated response
-        await storage.addMessage({
-          conversationId,
-          role: "assistant",
-          content: accumulatedResponse,
-          model: model || "gemini-2.5-flash",
-          voiceProfileId: voiceProfileId || null
-        });
+        // Save to database - use accumulated response after streaming completes
+        if (accumulatedResponse.trim()) {
+          await storage.addMessage({
+            conversationId,
+            role: "assistant",
+            content: accumulatedResponse,
+            model: model || "gemini-2.5-flash",
+            voiceProfileId: voiceProfileId || null
+          });
+        }
 
         // Auto-generate title if needed
         const updatedConversation = await storage.getConversation(conversationId);
