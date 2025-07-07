@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus, X } from "lucide-react";
+import { MessageSquare, Plus, Trash2 } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -199,7 +199,7 @@ export default function ConversationList() {
                         disabled={deleteConversationMutation.isPending}
                         title="Delete conversation"
                       >
-                        <X className="h-3 w-3 text-red-500" />
+                        <Trash2 className="h-3 w-3 text-red-500" />
                       </Button>
                     </div>
                   </div>

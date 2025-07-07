@@ -203,57 +203,55 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                   onClick={() => handleProfileClick(profile)}
                 >
                   <CardContent className={profile.isActive ? "p-4" : "p-2"}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">
-                          {profile.name}
-                        </h4>
-                        {profile.isActive && (
-                          <>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
-                              {profile.description || "No description"}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <FileText className="h-3 w-3" />
-                                {profile.samplesCount || 0} samples
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {profile.createdAt
-                                  ? new Date(profile.createdAt).toLocaleDateString()
-                                  : "Unknown"}
-                              </span>
+                    <div className="relative">
+                      {/* Active badge in top right corner */}
+                      {profile.isActive && (
+                        <Badge 
+                          variant="secondary"
+                          className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-1"
+                        >
+                          A
+                        </Badge>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0 pr-6">
+                          <h4 className="font-medium text-sm truncate mb-1">
+                            {profile.name}
+                          </h4>
+                          {profile.isActive ? (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                              <p className="line-clamp-1">
+                                {profile.description || "No description"}
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <span className="flex items-center gap-1">
+                                  <FileText className="h-3 w-3" />
+                                  {profile.samplesCount || 0}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {profile.createdAt
+                                    ? new Date(profile.createdAt).toLocaleDateString()
+                                    : "Unknown"}
+                                </span>
+                              </div>
                             </div>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {/* Minimized badges */}
-                        <div className="group/badge relative">
-                          <Badge 
-                            variant="secondary"
-                            className={`text-xs cursor-pointer transition-all duration-200 ${
-                              profile.isActive 
-                                ? "bg-green-500 hover:bg-green-600 text-white border-green-500 px-2" 
-                                : "w-6 h-6 rounded-full bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 group-hover/badge:w-auto group-hover/badge:px-2 group-hover/badge:rounded-sm flex items-center justify-center"
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!profile.isActive) {
+                          ) : (
+                            <Badge 
+                              variant="secondary"
+                              className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 activateProfileMutation.mutate(profile.id);
-                              }
-                            }}
-                            title={profile.isActive ? "Active" : "Click to activate"}
-                          >
-                            <span className={profile.isActive ? "" : "group-hover/badge:hidden"}>
-                              {profile.isActive ? "A" : "I"}
-                            </span>
-                            <span className={profile.isActive ? "" : "hidden group-hover/badge:inline"}>
-                              {profile.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </Badge>
+                              }}
+                              title="Click to activate"
+                            >
+                              Inactive
+                            </Badge>
+                          )}
                         </div>
+                        
                         {profile.isActive && (
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
