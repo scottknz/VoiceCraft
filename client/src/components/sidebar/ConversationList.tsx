@@ -12,7 +12,7 @@ import type { Conversation } from "@shared/schema";
 
 export default function ConversationList() {
   const { toast } = useToast();
-  const { currentConversation, setCurrentConversation } = useChatContext();
+  const { currentConversation, setCurrentConversation, setAccumulatedContent } = useChatContext();
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -20,12 +20,18 @@ export default function ConversationList() {
 
   const createConversationMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/conversations", {});
+      const response = await apiRequest("POST", "/api/conversations", {
+        title: "New Conversation"
+      });
       return response.json();
     },
     onSuccess: (newConversation) => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setCurrentConversation(newConversation);
+      // Clear accumulated content to reset chat window
+      if (setAccumulatedContent) {
+        setAccumulatedContent("");
+      }
       toast({
         title: "Success",
         description: "New conversation created",

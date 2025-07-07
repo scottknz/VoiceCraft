@@ -34,6 +34,13 @@ export function useChat(conversationId: number | null) {
     staleTime: 30000, // Cache for 30 seconds
   });
 
+  // Clear messages when conversation changes
+  useEffect(() => {
+    setLocalMessages([]);
+    setStreamingContent("");
+    setIsStreaming(false);
+  }, [conversationId]);
+
   // Sync database messages with local state - but preserve optimistic updates
   useEffect(() => {
     if (dbMessages.length > 0) {
