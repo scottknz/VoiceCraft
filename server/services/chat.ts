@@ -63,6 +63,7 @@ async function createGeminiResponse(options: ChatOptions): Promise<string> {
   const text = response.text || "";
   console.log(`Gemini response: "${text.substring(0, 100)}..." (length: ${text.length})`);
   
+  return text;
   if (!text.trim()) {
     throw new Error("Gemini returned empty response");
   }
