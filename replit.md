@@ -212,7 +212,8 @@ Changelog:
 - July 07, 2025. **MINIMIZED LEFT PANEL DESIGN**: Optimized sidebar layout for better space utilization
   - Only active voice profile displays full information (description, samples, dates)
   - Inactive voice profiles minimized to smaller row height with name only
-  - Active badge shows green "A", inactive badges show gray "I" that expand on hover to full text
+  - Active badge shows green "Active", inactive badges show "Inactive" aligned to the right of profile name
   - Removed all refresh buttons from voice profiles and conversations for cleaner interface
-  - Hover effects reveal full badge text and action buttons only when needed
+  - Hover effects reveal action buttons only when needed
   - Maximized chat area space while maintaining full functionality
+  - Changed conversation delete buttons from X to trash can icons for better clarity

@@ -204,22 +204,34 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                 >
                   <CardContent className={profile.isActive ? "p-4" : "p-2"}>
                     <div className="relative">
-                      {/* Active badge in top right corner */}
-                      {profile.isActive && (
-                        <Badge 
-                          variant="secondary"
-                          className="absolute -top-2 -right-2 bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-1"
-                        >
-                          A
-                        </Badge>
-                      )}
-                      
                       <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0 pr-6">
-                          <h4 className="font-medium text-sm truncate mb-1">
-                            {profile.name}
-                          </h4>
-                          {profile.isActive ? (
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-medium text-sm truncate">
+                              {profile.name}
+                            </h4>
+                            {profile.isActive ? (
+                              <Badge 
+                                variant="secondary"
+                                className="bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-2 ml-2"
+                              >
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge 
+                                variant="secondary"
+                                className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer ml-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  activateProfileMutation.mutate(profile.id);
+                                }}
+                                title="Click to activate"
+                              >
+                                Inactive
+                              </Badge>
+                            )}
+                          </div>
+                          {profile.isActive && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                               <p className="line-clamp-1">
                                 {profile.description || "No description"}
@@ -237,18 +249,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                                 </span>
                               </div>
                             </div>
-                          ) : (
-                            <Badge 
-                              variant="secondary"
-                              className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                activateProfileMutation.mutate(profile.id);
-                              }}
-                              title="Click to activate"
-                            >
-                              Inactive
-                            </Badge>
                           )}
                         </div>
                         
