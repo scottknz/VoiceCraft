@@ -48,6 +48,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log('Profile update request body:', req.body);
+      
       const allowedFields = ['firstName', 'lastName', 'email', 'preferredLanguage', 'timezone'];
       const updateData = Object.keys(req.body)
         .filter(key => allowedFields.includes(key))
@@ -55,6 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           obj[key] = req.body[key];
           return obj;
         }, {} as any);
+
+      console.log('Processed update data:', updateData);
 
       // If email is being updated, mark as unverified
       if (updateData.email) {

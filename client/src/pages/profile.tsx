@@ -67,7 +67,8 @@ export default function Profile() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      console.log('Profile update successful, updated user:', updatedUser);
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
@@ -75,6 +76,7 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error) => {
+      console.error('Profile update error:', error);
       toast({
         title: "Update Failed",
         description: error.message,
@@ -209,6 +211,7 @@ export default function Profile() {
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Profile update data being sent:', profileData);
     updateProfileMutation.mutate(profileData);
   };
 
@@ -340,7 +343,7 @@ export default function Profile() {
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
-                      value={profileData.email || user.email || ''}
+                      value={profileData.email}
                       onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                       placeholder="your.email@example.com"
                     />
