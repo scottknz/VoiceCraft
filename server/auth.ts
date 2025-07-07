@@ -177,7 +177,7 @@ export function setupAuth(app: Express) {
   });
 
   // Logout endpoint
-  app.post("/api/auth/logout", (req, res, next) => {
+  app.get("/api/logout", (req, res, next) => {
     const userId = req.user?.id;
     
     req.logout(async (err) => {
@@ -195,7 +195,8 @@ export function setupAuth(app: Express) {
         });
       }
       
-      res.sendStatus(200);
+      // Redirect to landing page
+      res.redirect('/');
     });
   });
 
