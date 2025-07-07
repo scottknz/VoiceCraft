@@ -60,22 +60,35 @@ export default function MessageInput() {
         throw new Error("No active conversation");
       }
 
-      // Save user message first
-      await apiRequest("POST", "/api/messages", {
-        conversationId: currentConversation.id,
-        role: "user",
-        content: messageText,
-      });
+      try {
+        // Save user message first
+        const userMessageResponse = await apiRequest("POST", "/api/messages", {
+          conversationId: currentConversation.id,
+          role: "user",
+          content: messageText,
+        });
 
-      // Get AI response
-      const response = await apiRequest("POST", "/api/chat", {
-        conversationId: currentConversation.id,
-        message: messageText,
-        model: selectedModel,
-        voiceProfileId: activeVoiceProfile?.id,
-      });
+        if (!userMessageResponse.ok) {
+          throw new Error(`Failed to save user message: ${userMessageResponse.status}`);
+        }
 
-      return response.json();
+        // Get AI response
+        const aiResponse = await apiRequest("POST", "/api/chat", {
+          conversationId: currentConversation.id,
+          message: messageText,
+          model: selectedModel,
+          voiceProfileId: activeVoiceProfile?.id,
+        });
+
+        if (!aiResponse.ok) {
+          throw new Error(`Failed to get AI response: ${aiResponse.status}`);
+        }
+
+        return await aiResponse.json();
+      } catch (error) {
+        console.error("Message send error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate and refetch messages

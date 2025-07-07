@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useChatContext } from "@/contexts/ChatContext";
 import MessageList from "./MessageList";
-import MessageInput from "./MessageInput";
+import MessageInput from "./MessageInput.complex";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
