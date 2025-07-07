@@ -121,7 +121,12 @@ export default function ConversationList() {
   const handleDeleteConversation = (conversationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // If we're deleting the current conversation, clear it
+    // Prevent multiple deletion attempts
+    if (deleteConversationMutation.isPending) {
+      return;
+    }
+    
+    // If we're deleting the current conversation, clear it first
     if (currentConversation?.id === conversationId) {
       setCurrentConversation(null);
     }
