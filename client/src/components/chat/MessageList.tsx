@@ -86,6 +86,8 @@ export default function MessageList() {
     const handleStreamingMessage = (event: CustomEvent) => {
       const { content, done, reset, fullResponse } = event.detail;
       
+      console.log("StreamingMessage event received:", { content, done, reset, fullResponse });
+      
       if (reset) {
         setStreamingMessage("");
         setIsStreaming(false);
@@ -98,7 +100,7 @@ export default function MessageList() {
         
         // Add the complete AI response to chat history
         if (fullResponse) {
-          console.log("Adding AI response to chat history");
+          console.log("Adding AI response to chat history:", fullResponse);
           const aiMessage: Message = {
             id: Date.now(), // Temporary ID
             conversationId: currentConversation?.id || 0,
@@ -109,7 +111,14 @@ export default function MessageList() {
             createdAt: new Date()
           };
           
-          setChatHistory(prev => [...prev, aiMessage]);
+          console.log("Adding AI message to chat history, current length:", chatHistory.length);
+          setChatHistory(prev => {
+            const newHistory = [...prev, aiMessage];
+            console.log("New chat history length:", newHistory.length);
+            return newHistory;
+          });
+        } else {
+          console.log("No fullResponse provided in done event");
         }
         return;
       }
