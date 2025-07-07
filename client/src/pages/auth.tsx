@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Bot, MessageSquare } from "lucide-react";
 
 export default function AuthPage() {
@@ -42,6 +42,8 @@ export default function AuthPage() {
       return await apiRequest('POST', '/api/auth/login', data);
     },
     onSuccess: () => {
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login Successful",
         description: "Welcome back to AI Voice Assistant!",
@@ -62,6 +64,8 @@ export default function AuthPage() {
       return await apiRequest('POST', '/api/auth/register', data);
     },
     onSuccess: () => {
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Registration Successful",
         description: "Welcome to AI Voice Assistant! You're now logged in.",
