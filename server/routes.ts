@@ -15,15 +15,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
+  // Enhanced Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      
+      // Log login event and update login statistics
+      await storage.updateUserLoginInfo(userId, {
+        lastLoginAt: new Date(),
+        loginCount: (user?.loginCount || 0) + 1
+      });
+
+      // Log security event
+      await storage.logSecurityEvent({
+        userId,
+        eventType: 'user_profile_access',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        details: JSON.stringify({ endpoint: '/api/auth/user' }),
+        severity: 'info'
+      });
+
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // User profile management
+  app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const allowedFields = ['firstName', 'lastName', 'preferredLanguage', 'timezone'];
+      const updateData = Object.keys(req.body)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj, key) => {
+          obj[key] = req.body[key];
+          return obj;
+        }, {} as any);
+
+      const updatedUser = await storage.updateUserProfile(userId, updateData);
+
+      // Log profile update
+      await storage.logSecurityEvent({
+        userId,
+        eventType: 'profile_update',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        details: JSON.stringify({ updatedFields: Object.keys(updateData) }),
+        severity: 'info'
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  // Session management
+  app.get('/api/auth/sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const sessions = await storage.getUserSessions(userId);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      res.status(500).json({ message: "Failed to fetch sessions" });
+    }
+  });
+
+  app.delete('/api/auth/sessions/:sessionId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const sessionId = req.params.sessionId;
+      
+      await storage.deactivateSession(sessionId);
+
+      // Log session termination
+      await storage.logSecurityEvent({
+        userId,
+        eventType: 'session_terminated',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        details: JSON.stringify({ sessionId }),
+        severity: 'info'
+      });
+
+      res.json({ message: "Session terminated successfully" });
+    } catch (error) {
+      console.error("Error terminating session:", error);
+      res.status(500).json({ message: "Failed to terminate session" });
+    }
+  });
+
+  app.delete('/api/auth/sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      await storage.deactivateAllUserSessions(userId);
+
+      // Log all sessions termination
+      await storage.logSecurityEvent({
+        userId,
+        eventType: 'all_sessions_terminated',
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        details: JSON.stringify({ reason: 'user_requested' }),
+        severity: 'warning'
+      });
+
+      res.json({ message: "All sessions terminated successfully" });
+    } catch (error) {
+      console.error("Error terminating all sessions:", error);
+      res.status(500).json({ message: "Failed to terminate all sessions" });
+    }
+  });
+
+  // Security events
+  app.get('/api/auth/security-events', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const events = await storage.getUserSecurityEvents(userId, limit);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching security events:", error);
+      res.status(500).json({ message: "Failed to fetch security events" });
     }
   });
 

@@ -25,15 +25,46 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for Replit Auth (Enhanced)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  emailVerified: boolean("email_verified").default(false),
+  accountStatus: varchar("account_status").default("active"), // active, suspended, pending
+  lastLoginAt: timestamp("last_login_at"),
+  loginCount: integer("login_count").default(0),
+  preferredLanguage: varchar("preferred_language").default("en"),
+  timezone: varchar("timezone"),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User sessions table for enhanced session tracking
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id").notNull().unique(),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Security events table for audit logging
+export const securityEvents = pgTable("security_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type").notNull(), // login, logout, password_change, profile_update, etc.
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  details: text("details"), // JSON string for additional event data
+  severity: varchar("severity").default("info"), // info, warning, critical
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Voice profiles table
@@ -114,6 +145,22 @@ export const messages = pgTable("messages", {
 export const usersRelations = relations(users, ({ many }) => ({
   voiceProfiles: many(voiceProfiles),
   conversations: many(conversations),
+  sessions: many(userSessions),
+  securityEvents: many(securityEvents),
+}));
+
+export const userSessionsRelations = relations(userSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const securityEventsRelations = relations(securityEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [securityEvents.userId],
+    references: [users.id],
+  }),
 }));
 
 export const voiceProfilesRelations = relations(voiceProfiles, ({ one, many }) => ({
@@ -190,6 +237,10 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = typeof userSessions.$inferInsert;
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
 export type VoiceProfile = typeof voiceProfiles.$inferSelect;
 export type InsertVoiceProfile = z.infer<typeof insertVoiceProfileSchema>;
 export type WritingSample = typeof writingSamples.$inferSelect;

@@ -1,5 +1,7 @@
 import {
   users,
+  userSessions,
+  securityEvents,
   voiceProfiles,
   writingSamples,
   embeddings,
@@ -7,6 +9,10 @@ import {
   messages,
   type User,
   type UpsertUser,
+  type UserSession,
+  type InsertUserSession,
+  type SecurityEvent,
+  type InsertSecurityEvent,
   type VoiceProfile,
   type InsertVoiceProfile,
   type WritingSample,
@@ -25,6 +31,22 @@ export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserLoginInfo(userId: string, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User>;
+  updateUserProfile(userId: string, profileData: Partial<UpsertUser>): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+
+  // Session management
+  createUserSession(session: InsertUserSession): Promise<UserSession>;
+  getUserSessions(userId: string): Promise<UserSession[]>;
+  getActiveSession(sessionId: string): Promise<UserSession | undefined>;
+  deactivateSession(sessionId: string): Promise<void>;
+  deactivateAllUserSessions(userId: string): Promise<void>;
+  cleanupExpiredSessions(): Promise<void>;
+
+  // Security event logging
+  logSecurityEvent(event: InsertSecurityEvent): Promise<SecurityEvent>;
+  getUserSecurityEvents(userId: string, limit?: number): Promise<SecurityEvent[]>;
+  getSecurityEventsByType(eventType: string, limit?: number): Promise<SecurityEvent[]>;
 
   // Voice profile operations
   getUserVoiceProfiles(userId: string): Promise<VoiceProfile[]>;
@@ -77,6 +99,109 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserLoginInfo(userId: string, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        lastLoginAt: loginData.lastLoginAt,
+        loginCount: loginData.loginCount,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserProfile(userId: string, profileData: Partial<UpsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...profileData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  // Session management
+  async createUserSession(sessionData: InsertUserSession): Promise<UserSession> {
+    const [session] = await db
+      .insert(userSessions)
+      .values(sessionData)
+      .returning();
+    return session;
+  }
+
+  async getUserSessions(userId: string): Promise<UserSession[]> {
+    return await db
+      .select()
+      .from(userSessions)
+      .where(and(eq(userSessions.userId, userId), eq(userSessions.isActive, true)))
+      .orderBy(desc(userSessions.createdAt));
+  }
+
+  async getActiveSession(sessionId: string): Promise<UserSession | undefined> {
+    const [session] = await db
+      .select()
+      .from(userSessions)
+      .where(and(eq(userSessions.sessionId, sessionId), eq(userSessions.isActive, true)));
+    return session;
+  }
+
+  async deactivateSession(sessionId: string): Promise<void> {
+    await db
+      .update(userSessions)
+      .set({ isActive: false })
+      .where(eq(userSessions.sessionId, sessionId));
+  }
+
+  async deactivateAllUserSessions(userId: string): Promise<void> {
+    await db
+      .update(userSessions)
+      .set({ isActive: false })
+      .where(eq(userSessions.userId, userId));
+  }
+
+  async cleanupExpiredSessions(): Promise<void> {
+    await db
+      .update(userSessions)
+      .set({ isActive: false })
+      .where(and(eq(userSessions.isActive, true), eq(userSessions.expiresAt, new Date())));
+  }
+
+  // Security event logging
+  async logSecurityEvent(eventData: InsertSecurityEvent): Promise<SecurityEvent> {
+    const [event] = await db
+      .insert(securityEvents)
+      .values(eventData)
+      .returning();
+    return event;
+  }
+
+  async getUserSecurityEvents(userId: string, limit = 50): Promise<SecurityEvent[]> {
+    return await db
+      .select()
+      .from(securityEvents)
+      .where(eq(securityEvents.userId, userId))
+      .orderBy(desc(securityEvents.createdAt))
+      .limit(limit);
+  }
+
+  async getSecurityEventsByType(eventType: string, limit = 100): Promise<SecurityEvent[]> {
+    return await db
+      .select()
+      .from(securityEvents)
+      .where(eq(securityEvents.eventType, eventType))
+      .orderBy(desc(securityEvents.createdAt))
+      .limit(limit);
   }
 
   // Voice profile operations
