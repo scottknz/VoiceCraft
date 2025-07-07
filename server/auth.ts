@@ -229,5 +229,12 @@ export function requireAuth(req: any, res: any, next: any) {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Authentication required" });
   }
+  
+  // Ensure user ID is properly set
+  if (!req.user || !req.user.id) {
+    console.error("User authenticated but no ID found:", req.user);
+    return res.status(401).json({ message: "User ID not found" });
+  }
+  
   next();
 }

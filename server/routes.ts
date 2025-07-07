@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Voice profile routes
   app.get("/api/voice-profiles", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id;
       const profiles = await storage.getUserVoiceProfiles(userId);
       res.json(profiles);
     } catch (error) {
@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/voice-profiles", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
+      const userId = req.user?.id;
       
       const result = insertVoiceProfileSchema.safeParse(req.body);
       if (!result.success) {
@@ -52,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/voice-profiles/:id", requireAuth, async (req: any, res) => {
     try {
       const profileId = parseInt(req.params.id);
-      const userId = req.user.id;
+      const userId = req.user?.id;
       
       const existingProfile = await storage.getVoiceProfile(profileId);
       if (!existingProfile || existingProfile.userId !== userId) {
@@ -72,10 +72,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice profile activation endpoint
+  app.post("/api/voice-profiles/:id/activate", requireAuth, async (req: any, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication failed" });
+      }
+      
+      await storage.setActiveVoiceProfile(userId, profileId);
+      res.json({ message: "Voice profile activated successfully" });
+    } catch (error) {
+      console.error("Error activating voice profile:", error);
+      res.status(500).json({ message: "Failed to activate voice profile" });
+    }
+  });
+
   app.delete("/api/voice-profiles/:id", requireAuth, async (req: any, res) => {
     try {
       const profileId = parseInt(req.params.id);
-      const userId = req.user.id;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication failed" });
+      }
       
       const profile = await storage.getVoiceProfile(profileId);
       if (!profile || profile.userId !== userId) {
@@ -93,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Conversation routes
   app.get("/api/conversations", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user?.id;
       const conversations = await storage.getUserConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -104,12 +126,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/conversations", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      console.log("req.user:", req.user);
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        console.error("No user ID found in request");
+        return res.status(401).json({ message: "User authentication failed" });
+      }
+      
       const conversationData = {
         title: req.body.title || "New Conversation",
         userId: userId
       };
       
+      console.log("Creating conversation with data:", conversationData);
       const result = insertConversationSchema.safeParse(conversationData);
       
       if (!result.success) {
@@ -128,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/conversations/:id", requireAuth, async (req: any, res) => {
     try {
       const conversationId = parseInt(req.params.id);
-      const userId = req.user.id;
+      const userId = req.user?.id;
       
       const conversation = await storage.getConversation(conversationId);
       if (!conversation || conversation.userId !== userId) {
@@ -165,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", requireAuth, async (req: any, res) => {
     try {
       const { conversationId, role, content, model, voiceProfileId } = req.body;
-      const userId = req.user.id;
+      const userId = req.user?.id;
 
       if (!conversationId || !role || !content) {
         return res.status(400).json({ message: "Conversation ID, role, and content are required" });
@@ -197,7 +227,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { conversationId, message, model, voiceProfileId } = req.body;
       console.log("Streaming chat request:", JSON.stringify({ conversationId, message, model, voiceProfileId }, null, 2));
       
-      const userId = req.user.id;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication failed" });
+      }
       
       // Validate conversation access
       const conversation = await storage.getConversation(conversationId);
