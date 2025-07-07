@@ -37,12 +37,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
+  // Query voice profiles to track active profile
+  const { data: voiceProfiles = [] } = useQuery<VoiceProfile[]>({
+    queryKey: ["/api/voice-profiles"],
+    enabled: !!user,
+    retry: false,
+  });
+
   // Auto-select the most recent conversation when conversations load
   useEffect(() => {
     if (conversations.length > 0 && !currentConversation) {
       setCurrentConversation(conversations[0]); // First item is most recent due to orderBy updatedAt desc
     }
   }, [conversations, currentConversation]);
+
+  // Track active voice profile
+  useEffect(() => {
+    const activeProfile = voiceProfiles.find(profile => profile.isActive);
+    setActiveVoiceProfile(activeProfile || null);
+  }, [voiceProfiles]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {

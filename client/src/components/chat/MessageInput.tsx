@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Send, Square } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -280,6 +281,18 @@ export default function MessageInput() {
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      {activeVoiceProfile && (
+        <div className="mb-2 flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs">
+            Voice: {activeVoiceProfile.name}
+          </Badge>
+          {activeVoiceProfile.description && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {activeVoiceProfile.description}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex items-center space-x-2">
         <Input
           ref={inputRef}

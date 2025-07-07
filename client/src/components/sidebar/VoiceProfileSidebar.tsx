@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DetailedVoiceProfileModal from "./DetailedVoiceProfileModal";
 import ConversationList from "./ConversationList";
-import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X } from "lucide-react";
+import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X, RefreshCw, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { VoiceProfile } from "@shared/schema";
@@ -109,10 +109,36 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
     setShowModal(true);
   };
 
-  const handleDeleteProfile = (profileId: number) => {
+  const refreshProfilesMutation = useMutation({
+    mutationFn: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/voice-profiles"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/voice-profiles"] });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Voice profiles refreshed",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error", 
+        description: "Failed to refresh voice profiles",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteProfile = (profileId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm("Are you sure you want to delete this voice profile?")) {
       deleteProfileMutation.mutate(profileId);
     }
+  };
+
+  const handleRefreshProfiles = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    refreshProfilesMutation.mutate();
   };
 
   if (isLoading) {
@@ -225,17 +251,38 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                           </span>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0"
+                          className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                          onClick={handleRefreshProfiles}
+                          disabled={refreshProfilesMutation.isPending}
+                          title="Refresh profiles"
+                        >
+                          <RefreshCw className="h-3 w-3 text-blue-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                           onClick={(e) => {
                             e.stopPropagation();
                             openEditModal(profile);
                           }}
+                          title="Edit profile"
                         >
-                          <MoreVertical className="h-3 w-3" />
+                          <MoreVertical className="h-3 w-3 text-gray-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                          onClick={(e) => handleDeleteProfile(profile.id, e)}
+                          disabled={deleteProfileMutation.isPending}
+                          title="Delete profile"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
                         </Button>
                       </div>
                     </div>
