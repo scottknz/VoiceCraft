@@ -83,6 +83,7 @@ export default function MessageList() {
   const { user } = useAuth();
   const { currentConversation } = useChatContext();
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+  const [previousConversationId, setPreviousConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -91,17 +92,27 @@ export default function MessageList() {
     refetchInterval: 5000, // Poll every 5 seconds for new messages
   });
 
+  // Track conversation changes to clear messages immediately
+  useEffect(() => {
+    if (currentConversation?.id !== previousConversationId) {
+      setPreviousConversationId(currentConversation?.id || null);
+    }
+  }, [currentConversation?.id, previousConversationId]);
+
+  // Show empty state immediately when switching conversations
+  const displayMessages = currentConversation?.id === previousConversationId ? messages : [];
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const copyToClipboard = async (messageId: number) => {
-    const message = messages.find(m => m.id === messageId);
+    const message = displayMessages.find(m => m.id === messageId);
     if (message) {
       await navigator.clipboard.writeText(message.content);
       setCopiedMessageId(messageId);
@@ -122,14 +133,14 @@ export default function MessageList() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-full" style={{ scrollbarWidth: 'thin' }}>
-      {messages.length === 0 ? (
+      {displayMessages.length === 0 ? (
         <div className="text-center text-gray-500 dark:text-gray-400 py-8">
           <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="text-sm">No messages yet. Start the conversation!</p>
         </div>
       ) : (
         <>
-          {messages.map((message) => (
+          {displayMessages.map((message) => (
             <MessageBubble
               key={message.id}
               message={message}
