@@ -30,31 +30,28 @@ export default function MessageInput() {
     retry: false,
   });
 
-  // Auto-create conversation if none exist
-  useEffect(() => {
-    const autoCreateConversation = async () => {
-      if (conversations.length === 0 && !currentConversation && !isCreatingConversation) {
-        setIsCreatingConversation(true);
-        try {
-          await createNewConversation();
-        } catch (error) {
-          console.error("Failed to auto-create conversation:", error);
-          if (isUnauthorizedError(error as Error)) {
-            toast({
-              title: "Session expired",
-              description: "Please log in again",
-              variant: "destructive",
-            });
-            window.location.href = "/api/login";
-          }
-        } finally {
-          setIsCreatingConversation(false);
+  // Auto-create conversation only when user sends a message and no conversations exist
+  const autoCreateConversationForMessage = async () => {
+    if (conversations.length === 0 && !currentConversation && !isCreatingConversation) {
+      setIsCreatingConversation(true);
+      try {
+        await createNewConversation();
+      } catch (error) {
+        console.error("Failed to auto-create conversation:", error);
+        if (isUnauthorizedError(error as Error)) {
+          toast({
+            title: "Session expired",
+            description: "Please log in again",
+            variant: "destructive",
+          });
+          window.location.href = "/api/login";
         }
+        throw error; // Re-throw to prevent message sending
+      } finally {
+        setIsCreatingConversation(false);
       }
-    };
-
-    autoCreateConversation();
-  }, [conversations.length, currentConversation, isCreatingConversation, createNewConversation, toast]);
+    }
+  };
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -108,7 +105,16 @@ export default function MessageInput() {
   const handleSend = async () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
 
-    // Ensure we have a conversation
+    // Auto-create conversation if none exist and user is sending a message
+    if (!currentConversation && conversations.length === 0) {
+      try {
+        await autoCreateConversationForMessage();
+      } catch (error) {
+        return; // Don't send message if conversation creation failed
+      }
+    }
+
+    // Ensure we have a conversation after auto-creation
     if (!currentConversation) {
       toast({
         title: "No conversation selected",

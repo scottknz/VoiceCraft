@@ -180,3 +180,12 @@ Changelog:
   - Chat input enabled streaming by default for faster perceived response times
   - Maintained fallback to non-streaming for reliability
   - Improved message persistence and database synchronization after streaming completes
+- July 07, 2025. **FIXED CONVERSATION MANAGEMENT**: Resolved conversation creation and deletion issues
+  - Added missing DELETE conversation endpoint to server routes with proper ownership validation
+  - Fixed infinite conversation deletion loops that were causing API spam
+  - Removed automatic conversation creation on page load - now only creates when:
+    * User clicks plus button to manually create conversation
+    * User types message when NO conversations exist (creates then sends message)
+  - Enhanced conversation selection logic to handle deletions and switching properly
+  - Added protection against multiple deletion attempts in UI components
+  - Conversation management now works as intended with proper user control
