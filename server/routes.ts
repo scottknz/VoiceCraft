@@ -138,15 +138,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Regular chat endpoint (non-streaming)
   app.post("/api/chat", requireAuth, async (req: any, res) => {
     try {
-      const { messages, model, voiceProfileId } = req.body;
-      console.log("Chat request body:", JSON.stringify({ messages, model, voiceProfileId }, null, 2));
+      const { conversationId, message, model, voiceProfileId } = req.body;
+      console.log("Chat request body:", JSON.stringify({ conversationId, message, model, voiceProfileId }, null, 2));
       
       const userId = req.user.id.toString();
       
-      // Validate messages array
-      if (!messages || !Array.isArray(messages) || messages.length === 0) {
-        return res.status(400).json({ message: "Messages array is required and must not be empty" });
+      // Validate required fields
+      if (!conversationId || !message) {
+        return res.status(400).json({ message: "Conversation ID and message are required" });
       }
+      
+      // Get conversation history to build messages array
+      const conversationMessages = await storage.getConversationMessages(conversationId);
+      
+      // Build messages array from conversation history + current message
+      const messages = [
+        ...conversationMessages.map(msg => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content
+        })),
+        {
+          role: "user" as const,
+          content: message
+        }
+      ];
       
       let voiceProfile = null;
       if (voiceProfileId) {
@@ -157,6 +172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: model || "gemini-2.5-flash",
         messages,
         voiceProfile
+      });
+
+      // Save AI response to database
+      await storage.addMessage({
+        conversationId,
+        role: "assistant",
+        content: response,
+        model: model || "gemini-2.5-flash",
+        voiceProfileId: voiceProfileId || null
       });
 
       res.json({ response });

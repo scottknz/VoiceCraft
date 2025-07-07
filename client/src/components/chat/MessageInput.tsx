@@ -108,7 +108,8 @@ export default function MessageInput() {
         return response;
       } else {
         const response = await apiRequest("POST", "/api/chat", requestBody);
-        return response.json();
+        const data = await response.json();
+        return data;
       }
     },
     onSuccess: async (response) => {
@@ -192,7 +193,24 @@ export default function MessageInput() {
           }
         }
       } else {
-        // Handle non-streaming response - let MessageList handle refresh
+        // Handle non-streaming response
+        setIsStreaming(false);
+        setAbortController(null);
+        
+        if (response.response) {
+          console.log("Adding AI response to chat history:", response.response);
+          window.dispatchEvent(new CustomEvent('streamingMessage', { 
+            detail: { content: "", done: true, fullResponse: response.response } 
+          }));
+          
+          // Trigger refresh after a short delay to get the saved AI message
+          setTimeout(() => {
+            console.log("AI response complete - requesting database refresh");
+            window.dispatchEvent(new CustomEvent('messageSaved', { 
+              detail: { type: 'assistant' } 
+            }));
+          }, 500);
+        }
       }
     },
     onError: (error) => {
