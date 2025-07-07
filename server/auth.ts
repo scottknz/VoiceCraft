@@ -62,7 +62,7 @@ export function setupAuth(app: Express) {
         }
         
         // Update login statistics
-        await storage.updateUserLoginInfo(user.id.toString(), {
+        await storage.updateUserLoginInfo(user.id, {
           lastLoginAt: new Date(),
           loginCount: (user.loginCount || 0) + 1
         });

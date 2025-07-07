@@ -29,33 +29,33 @@ import { eq, desc, and, count } from "drizzle-orm";
 
 export interface IStorage {
   // User operations for independent authentication
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
-  updateUserLoginInfo(userId: string, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User>;
-  updateUserProfile(userId: string, profileData: Partial<UpsertUser>): Promise<User>;
+  updateUserLoginInfo(userId: number, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User>;
+  updateUserProfile(userId: number, profileData: Partial<UpsertUser>): Promise<User>;
 
   // Session management
   createUserSession(session: InsertUserSession): Promise<UserSession>;
-  getUserSessions(userId: string): Promise<UserSession[]>;
+  getUserSessions(userId: number): Promise<UserSession[]>;
   getActiveSession(sessionId: string): Promise<UserSession | undefined>;
   deactivateSession(sessionId: string): Promise<void>;
-  deactivateAllUserSessions(userId: string): Promise<void>;
+  deactivateAllUserSessions(userId: number): Promise<void>;
   cleanupExpiredSessions(): Promise<void>;
 
   // Security event logging
   logSecurityEvent(event: InsertSecurityEvent): Promise<SecurityEvent>;
-  getUserSecurityEvents(userId: string, limit?: number): Promise<SecurityEvent[]>;
+  getUserSecurityEvents(userId: number, limit?: number): Promise<SecurityEvent[]>;
   getSecurityEventsByType(eventType: string, limit?: number): Promise<SecurityEvent[]>;
 
   // Voice profile operations
-  getUserVoiceProfiles(userId: string): Promise<VoiceProfile[]>;
+  getUserVoiceProfiles(userId: number): Promise<VoiceProfile[]>;
   createVoiceProfile(profile: InsertVoiceProfile): Promise<VoiceProfile>;
   updateVoiceProfile(id: number, profile: Partial<InsertVoiceProfile>): Promise<VoiceProfile>;
   deleteVoiceProfile(id: number): Promise<void>;
   getVoiceProfile(id: number): Promise<VoiceProfile | undefined>;
-  setActiveVoiceProfile(userId: string, profileId: number): Promise<void>;
+  setActiveVoiceProfile(userId: number, profileId: number): Promise<void>;
 
   // Writing sample operations
   addWritingSample(sample: InsertWritingSample): Promise<WritingSample>;
@@ -68,7 +68,7 @@ export interface IStorage {
   deleteVoiceProfileEmbeddings(voiceProfileId: number): Promise<void>;
 
   // Conversation operations
-  getUserConversations(userId: string): Promise<Conversation[]>;
+  getUserConversations(userId: number): Promise<Conversation[]>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(id: number): Promise<Conversation | undefined>;
   updateConversation(id: number, conversation: Partial<InsertConversation>): Promise<Conversation>;
@@ -82,8 +82,8 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, parseInt(id)));
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
@@ -100,7 +100,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserLoginInfo(userId: string, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User> {
+  async updateUserLoginInfo(userId: number, loginData: { lastLoginAt: Date; loginCount: number }): Promise<User> {
     const [user] = await db
       .update(users)
       .set({
@@ -108,19 +108,19 @@ export class DatabaseStorage implements IStorage {
         loginCount: loginData.loginCount,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, parseInt(userId)))
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
 
-  async updateUserProfile(userId: string, profileData: Partial<UpsertUser>): Promise<User> {
+  async updateUserProfile(userId: number, profileData: Partial<UpsertUser>): Promise<User> {
     const [user] = await db
       .update(users)
       .set({
         ...profileData,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, parseInt(userId)))
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }
@@ -139,7 +139,7 @@ export class DatabaseStorage implements IStorage {
     return session;
   }
 
-  async getUserSessions(userId: string): Promise<UserSession[]> {
+  async getUserSessions(userId: number): Promise<UserSession[]> {
     return await db
       .select()
       .from(userSessions)
@@ -162,7 +162,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userSessions.sessionId, sessionId));
   }
 
-  async deactivateAllUserSessions(userId: string): Promise<void> {
+  async deactivateAllUserSessions(userId: number): Promise<void> {
     await db
       .update(userSessions)
       .set({ isActive: false })
@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Voice profile operations
-  async getUserVoiceProfiles(userId: string): Promise<VoiceProfile[]> {
+  async getUserVoiceProfiles(userId: number): Promise<VoiceProfile[]> {
     return await db
       .select()
       .from(voiceProfiles)
@@ -241,7 +241,7 @@ export class DatabaseStorage implements IStorage {
     return profile;
   }
 
-  async setActiveVoiceProfile(userId: string, profileId: number): Promise<void> {
+  async setActiveVoiceProfile(userId: number, profileId: number): Promise<void> {
     // First, deactivate all profiles for the user
     await db
       .update(voiceProfiles)
@@ -312,7 +312,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Conversation operations
-  async getUserConversations(userId: string): Promise<Conversation[]> {
+  async getUserConversations(userId: number): Promise<Conversation[]> {
     return await db
       .select()
       .from(conversations)

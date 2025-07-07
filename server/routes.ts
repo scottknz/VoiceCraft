@@ -18,7 +18,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Voice profile routes
   app.get("/api/voice-profiles", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id.toString();
+      const userId = req.user.id; // Keep as integer
       const profiles = await storage.getUserVoiceProfiles(userId);
       res.json(profiles);
     } catch (error) {
@@ -42,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.createVoiceProfile(profileData);
       
       // Set this as the active profile for the user
-      await storage.setActiveVoiceProfile(userId.toString(), profile.id);
+      await storage.setActiveVoiceProfile(userId, profile.id);
       
       res.status(201).json(profile);
     } catch (error) {
@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat conversation routes
   app.get("/api/conversations", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id.toString();
+      const userId = req.user.id; // Keep as integer
       const conversations = await storage.getUserConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -122,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", requireAuth, async (req: any, res) => {
     try {
       const { conversationId, role, content, model, voiceProfileId } = req.body;
-      const userId = req.user.id.toString();
+      const userId = req.user.id; // Keep as integer
 
       // Validate required fields
       if (!conversationId || !role || !content) {
