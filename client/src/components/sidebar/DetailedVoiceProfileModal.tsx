@@ -44,13 +44,6 @@ const formattingLabels = {
 
 const formSchema = insertVoiceProfileSchema.extend({
   name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
-  purpose: z.string().optional(),
-  structurePreferences: z.string().optional(),
-  moralTone: z.string().optional(),
-  toneOptions: z.array(z.string()).optional(),
-  customTones: z.array(z.string()).optional(),
-  ethicalBoundaries: z.array(z.string()).optional(),
 });
 
 export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: DetailedVoiceProfileModalProps) {
@@ -82,10 +75,19 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
 
   const mutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
+      console.log("Mutation starting with data:", data);
       const url = profile ? `/api/voice-profiles/${profile.id}` : "/api/voice-profiles";
       const method = profile ? "PATCH" : "POST";
-      const response = await apiRequest(method, url, data);
-      return response.json();
+      console.log(`Making ${method} request to ${url}`);
+      
+      try {
+        const response = await apiRequest(method, url, data);
+        console.log("API response received:", response.status);
+        return response.json();
+      } catch (error) {
+        console.error("Mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -144,6 +146,8 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
   };
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
+    console.log("Form submitted with data:", data);
+    console.log("Form errors:", form.formState.errors);
     mutation.mutate(data);
   };
 
@@ -583,7 +587,11 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={mutation.isPending}
+                onClick={() => console.log("Submit button clicked", form.formState.isValid, form.formState.errors)}
+              >
                 {mutation.isPending ? "Saving..." : profile ? "Update Profile" : "Create Profile"}
               </Button>
             </div>
