@@ -276,6 +276,16 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                          onClick={(e) => handleDeleteProfile(profile.id, e)}
+                          disabled={deleteProfileMutation.isPending}
+                          title="Delete profile"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -284,16 +294,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                           title="Edit profile"
                         >
                           <MoreVertical className="h-3 w-3 text-gray-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                          onClick={(e) => handleDeleteProfile(profile.id, e)}
-                          disabled={deleteProfileMutation.isPending}
-                          title="Delete profile"
-                        >
-                          <Trash2 className="h-3 w-3 text-red-500" />
                         </Button>
                       </div>
                     </div>
