@@ -229,8 +229,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Send immediate connection confirmation
-      res.write(`data: ${JSON.stringify({ status: "connected" })}\n\n`);
+      // Send immediate start signal to match reference
+      res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
 
       const { stream, fullResponse } = await createChatStream({
         model: model || "gemini-2.5-flash",
@@ -254,8 +254,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
         
-        // Send completion signal
-        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        // Send completion signal to match reference
+        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
         
         // Save to database - use accumulated response after streaming completes
         if (accumulatedResponse.trim()) {
