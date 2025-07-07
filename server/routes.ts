@@ -229,9 +229,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Access-Control-Allow-Headers': 'Cache-Control'
       });
 
-      // Send immediate start signal to match reference
+      // Send immediate start signal for instant response like reference
       res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
 
+      // Start AI streaming immediately - database operations happen in parallel
       const { stream, fullResponse } = await createChatStream({
         model: model || "gemini-2.5-flash",
         messages,

@@ -203,3 +203,9 @@ Changelog:
   - Optimized streaming flow for immediate response and faster initiation
   - Streaming now works at 2.6 second response times with perfect chunking
   - Fixed conversation creation bug with proper user ID validation
+- July 07, 2025. **INSTANT RESPONSE OPTIMIZATION**: Matched reference implementation's instant prompt/streaming behavior
+  - User messages now appear instantly upon sending (no database wait)
+  - AI responses start streaming immediately without blocking on database operations
+  - Database saves happen in background while streaming proceeds
+  - Input field clears immediately for better responsiveness
+  - Completely decoupled UI updates from database operations for maximum speed

@@ -55,44 +55,43 @@ export function useChat(conversationId: number | null) {
         throw new Error("No active conversation or user");
       }
 
-      // 1. Optimistically add user message to UI
-      const tempUserMessage: ChatMessage = {
-        id: `temp-user-${Date.now()}`,
+      // 1. Show user message instantly - no database wait
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
         conversationId,
         role: "user",
         content: message,
         model: null,
         voiceProfileId: activeVoiceProfile?.id || null,
         createdAt: new Date(),
-        isTemporary: true,
+        isTemporary: false, // Treat as permanent for instant display
       };
 
-      setLocalMessages(prev => [...prev, tempUserMessage]);
+      setLocalMessages(prev => [...prev, userMessage]);
 
-      // 2. Save user message to database first
-      const savedUserMessage = await apiRequest("POST", "/api/messages", {
+      // 2. Save user message to database in background (non-blocking)
+      apiRequest("POST", "/api/messages", {
         conversationId,
         role: "user",
         content: message,
+      }).then(async (response) => {
+        const userMessageData = await response.json();
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === userMessage.id 
+              ? { ...userMessageData, id: userMessageData.id, createdAt: new Date(userMessageData.createdAt) }
+              : msg
+          )
+        );
+      }).catch(error => {
+        console.error("Background user message save failed:", error);
       });
 
-      // 3. Replace temporary message with saved one
-      const userMessageData = await savedUserMessage.json();
-      setLocalMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempUserMessage.id 
-            ? { ...userMessageData, id: userMessageData.id, createdAt: new Date(userMessageData.createdAt), isTemporary: false }
-            : msg
-        )
-      );
-
-      // 4. Get AI response
-      console.log("About to get AI response, stream:", stream);
+      // 3. Start streaming immediately - match reference behavior
+      console.log("Starting immediate streaming response");
       if (stream) {
-        console.log("Using streaming response");
         return handleStreamingResponse(conversationId, message);
       } else {
-        console.log("Using regular response");
         return handleRegularResponse(conversationId, message);
       }
     },
