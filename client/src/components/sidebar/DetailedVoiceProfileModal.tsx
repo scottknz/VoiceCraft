@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Upload, FileText, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { insertVoiceProfileSchema } from "@shared/schema";
@@ -53,6 +53,12 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
   const queryClient = useQueryClient();
   const [customTone, setCustomTone] = useState("");
   const [customEthicalBoundary, setCustomEthicalBoundary] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{
+    name: string;
+    content: string;
+    type: string;
+    size: number;
+  }>>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -138,10 +144,92 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
     form.setValue("ethicalBoundaries", currentBoundaries.filter((_, i) => i !== index));
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    if (uploadedFiles.length + files.length > 3) {
+      toast({
+        title: "Upload Limit",
+        description: "You can only upload up to 3 example texts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "File Too Large",
+          description: `${file.name} is too large. Maximum size is 5MB.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      try {
+        let content = "";
+        
+        if (file.type.startsWith("text/") || file.type === "application/pdf" || 
+            file.type === "application/msword" || 
+            file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+          
+          if (file.type === "application/pdf") {
+            // For PDF files, we'll need to handle them on the backend
+            content = `[PDF File: ${file.name} - Will be processed on server]`;
+          } else if (file.type.includes("word") || file.type.includes("document")) {
+            // For Word docs, we'll need to handle them on the backend
+            content = `[Document File: ${file.name} - Will be processed on server]`;
+          } else {
+            // Plain text files
+            content = await file.text();
+          }
+          
+          setUploadedFiles(prev => [...prev, {
+            name: file.name,
+            content,
+            type: file.type,
+            size: file.size,
+          }]);
+        } else {
+          toast({
+            title: "Unsupported File Type",
+            description: `${file.name} is not a supported file type. Please upload text, PDF, or Word documents.`,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Upload Error",
+          description: `Failed to read ${file.name}`,
+          variant: "destructive",
+        });
+      }
+    }
+    
+    // Clear the input
+    event.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     console.log("Form submitted with data:", data);
+    console.log("Uploaded files:", uploadedFiles);
     console.log("Form errors:", form.formState.errors);
-    mutation.mutate(data);
+    
+    // Include uploaded files in the submission data
+    const submissionData = {
+      ...data,
+      exampleTexts: uploadedFiles.map(file => ({
+        name: file.name,
+        content: file.content,
+        type: file.type,
+      }))
+    };
+    
+    mutation.mutate(submissionData);
   };
 
   return (
@@ -188,6 +276,80 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                     </FormItem>
                   )}
                 />
+
+                {/* File Upload Section */}
+                <div className="space-y-3">
+                  <Label>Example Texts (up to 3 files)</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Upload sample texts that represent your desired writing style, tone, and language. 
+                    Supports: .txt, .pdf, .doc, .docx files (max 5MB each)
+                  </p>
+                  
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      multiple
+                      accept=".txt,.pdf,.doc,.docx,text/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={uploadedFiles.length >= 3}
+                    />
+                    <label 
+                      htmlFor="file-upload" 
+                      className={`cursor-pointer flex flex-col items-center space-y-2 ${
+                        uploadedFiles.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Upload className="h-8 w-8 text-gray-400" />
+                      <span className="text-sm font-medium">
+                        {uploadedFiles.length >= 3 ? 'Maximum files reached' : 'Click to upload files'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        or drag and drop
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Uploaded Files List */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Uploaded Files:</Label>
+                      {uploadedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <p className="text-sm font-medium">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {file.type} • {(file.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {uploadedFiles.length > 0 && (
+                    <div className="flex items-start space-x-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        These example texts will be analyzed to understand your writing style, tone, and preferences. 
+                        The AI will use this analysis to better match your voice in responses.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
