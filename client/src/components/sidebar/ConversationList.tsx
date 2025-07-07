@@ -199,10 +199,12 @@ export default function ConversationList() {
             >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
                     <h4 className="text-sm truncate text-gray-900 dark:text-gray-100">
                       {conversation.title || `Conversation ${conversation.id}`}
                     </h4>
+                  </div>
+                  <div className="flex items-center gap-1">
                     <Badge 
                       variant="secondary"
                       className={`text-xs cursor-pointer transition-colors ${
@@ -219,28 +221,28 @@ export default function ConversationList() {
                     >
                       {currentConversation?.id === conversation.id ? "Active" : "Inactive"}
                     </Badge>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
-                      onClick={(e) => handleRegenerateTitle(conversation.id, e)}
-                      disabled={regenerateTitleMutation.isPending}
-                      title="Regenerate title"
-                    >
-                      <RefreshCw className="h-3 w-3 text-blue-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                      onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                      disabled={deleteConversationMutation.isPending}
-                      title="Delete conversation"
-                    >
-                      <X className="h-3 w-3 text-red-500" />
-                    </Button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                        onClick={(e) => handleRegenerateTitle(conversation.id, e)}
+                        disabled={regenerateTitleMutation.isPending}
+                        title="Regenerate title"
+                      >
+                        <RefreshCw className="h-3 w-3 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                        onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                        disabled={deleteConversationMutation.isPending}
+                        title="Delete conversation"
+                      >
+                        <X className="h-3 w-3 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
