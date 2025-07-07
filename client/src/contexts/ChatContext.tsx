@@ -49,19 +49,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     if (conversations.length > 0) {
       // If no current conversation, select the first one (most recent)
       if (!currentConversation) {
+        console.log("Auto-selecting first conversation:", conversations[0]);
         setCurrentConversation(conversations[0]);
       } else {
         // If current conversation was deleted, select the first one or clear if none
         const stillExists = conversations.find(c => c.id === currentConversation.id);
         if (!stillExists) {
+          console.log("Current conversation deleted, selecting first:", conversations[0]);
           setCurrentConversation(conversations[0] || null);
         }
+        // Do not auto-select if current conversation still exists - prevents bouncing
       }
     } else if (currentConversation) {
       // If all conversations are deleted, clear current conversation
+      console.log("No conversations left, clearing current conversation");
       setCurrentConversation(null);
     }
-  }, [conversations, currentConversation]);
+  }, [conversations.length, currentConversation?.id]); // Use specific dependencies to prevent over-triggering
 
   // Track active voice profile and ensure it updates when profiles change
   useEffect(() => {
@@ -81,7 +85,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (conversation) => {
+      console.log("New conversation created:", conversation);
+      
+      // Set the new conversation immediately to prevent auto-selection interference
       setCurrentConversation(conversation);
+      
+      // Invalidate conversations query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
     onError: (error) => {
