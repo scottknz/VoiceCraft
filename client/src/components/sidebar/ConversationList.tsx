@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus, X, RefreshCw } from "lucide-react";
+import { MessageSquare, Plus, X } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -87,36 +87,7 @@ export default function ConversationList() {
     },
   });
 
-  const regenerateTitleMutation = useMutation({
-    mutationFn: async (conversationId: number) => {
-      await apiRequest("POST", `/api/conversations/${conversationId}/generate-title`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-      toast({
-        title: "Success",
-        description: "Title regenerated successfully",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to regenerate title",
-        variant: "destructive",
-      });
-    },
-  });
+  // Regenerate title mutation removed for cleaner interface
 
   const handleDeleteConversation = (conversationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -134,10 +105,7 @@ export default function ConversationList() {
     deleteConversationMutation.mutate(conversationId);
   };
 
-  const handleRegenerateTitle = (conversationId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    regenerateTitleMutation.mutate(conversationId);
-  };
+  // Regenerate title handler removed for cleaner interface
 
 
 
@@ -222,16 +190,7 @@ export default function ConversationList() {
                       {currentConversation?.id === conversation.id ? "Active" : "Inactive"}
                     </Badge>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
-                        onClick={(e) => handleRegenerateTitle(conversation.id, e)}
-                        disabled={regenerateTitleMutation.isPending}
-                        title="Regenerate title"
-                      >
-                        <RefreshCw className="h-3 w-3 text-blue-500" />
-                      </Button>
+                      {/* Regenerate title button removed for cleaner interface */}
                       <Button
                         variant="ghost"
                         size="sm"
