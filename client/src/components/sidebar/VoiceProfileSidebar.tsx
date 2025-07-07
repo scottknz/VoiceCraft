@@ -233,7 +233,7 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                             variant="secondary"
                             className={`text-xs cursor-pointer transition-colors ${
                               profile.isActive 
-                                ? "!bg-green-500 !hover:bg-green-600 !text-white border-green-500" 
+                                ? "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500" 
                                 : "hover:bg-gray-200 dark:hover:bg-gray-600"
                             }`}
                             onClick={(e) => {
