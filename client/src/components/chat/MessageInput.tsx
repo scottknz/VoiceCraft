@@ -198,6 +198,9 @@ export default function MessageInput() {
         setAbortController(null);
         
         console.log("Full response object:", response);
+        console.log("Response type:", typeof response);
+        console.log("Response keys:", Object.keys(response || {}));
+        
         if (response && response.response) {
           console.log("Adding AI response to chat history:", response.response);
           window.dispatchEvent(new CustomEvent('streamingMessage', { 
@@ -213,6 +216,13 @@ export default function MessageInput() {
           }, 500);
         } else {
           console.error("No response.response found in:", response);
+          // Try to refresh from database anyway
+          setTimeout(() => {
+            console.log("Refreshing from database due to missing response");
+            window.dispatchEvent(new CustomEvent('messageSaved', { 
+              detail: { type: 'assistant' } 
+            }));
+          }, 1000);
         }
       }
     },
