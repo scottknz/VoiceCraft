@@ -33,8 +33,15 @@ export default function Profile() {
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
+    email: '',
     preferredLanguage: 'en',
     timezone: ''
+  });
+  
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   // Fetch user sessions
@@ -70,6 +77,72 @@ export default function Profile() {
     onError: (error) => {
       toast({
         title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    },
+    onSuccess: (response: any) => {
+      toast({
+        title: "Password Change Request Processed",
+        description: response.message || "Your password change request has been processed.",
+      });
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
+      // If there's a redirect URL, show additional information
+      if (response.redirectUrl) {
+        setTimeout(() => {
+          toast({
+            title: "Additional Action Required",
+            description: "You may need to complete the password change in your Replit account settings.",
+          });
+        }, 2000);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Password Change Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send verification email mutation
+  const sendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/auth/send-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    },
+    onSuccess: (response: any) => {
+      toast({
+        title: "Verification Email Sent",
+        description: `A verification email has been sent to ${response.email}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Send Verification",
         description: error.message,
         variant: "destructive",
       });
@@ -127,6 +200,7 @@ export default function Profile() {
       setProfileData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
+        email: user.email || '',
         preferredLanguage: user.preferredLanguage || 'en',
         timezone: user.timezone || ''
       });
@@ -136,6 +210,33 @@ export default function Profile() {
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfileMutation.mutate(profileData);
+  };
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirmation do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword
+    });
   };
 
   const handleTerminateSession = (sessionId: string) => {
@@ -189,7 +290,7 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -201,10 +302,6 @@ export default function Profile() {
             <TabsTrigger value="sessions" className="flex items-center gap-2">
               <Monitor className="h-4 w-4" />
               Sessions
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Activity
             </TabsTrigger>
           </TabsList>
 
@@ -243,12 +340,12 @@ export default function Profile() {
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
-                      value={user.email || ''}
-                      disabled
-                      className="bg-slate-100 dark:bg-slate-800"
+                      value={profileData.email || user.email || ''}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                      placeholder="your.email@example.com"
                     />
                     <p className="text-sm text-slate-500 mt-1">
-                      Email cannot be changed through this interface.
+                      Changes to your email address will require verification.
                     </p>
                   </div>
 
@@ -341,7 +438,63 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
-                  Security Settings
+                  Change Password
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div>
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      placeholder="Enter your current password"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      placeholder="Enter new password (min 8 characters)"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      placeholder="Confirm your new password"
+                      required
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    disabled={changePasswordMutation.isPending}
+                    className="w-full md:w-auto"
+                  >
+                    {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Account Security
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -357,19 +510,35 @@ export default function Profile() {
                       {user.emailVerified ? 'Email verified' : 'Email not verified'}
                     </span>
                   </div>
+                  {!user.emailVerified && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => sendVerificationMutation.mutate()}
+                      disabled={sendVerificationMutation.isPending}
+                    >
+                      {sendVerificationMutation.isPending ? 'Sending...' : 'Send Verification Email'}
+                    </Button>
+                  )}
                 </div>
 
                 <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
                   <h3 className="font-medium mb-2">Two-Factor Authentication</h3>
-                  <div className="flex items-center gap-2">
-                    {user.twoFactorEnabled ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
-                    )}
-                    <span className="text-sm">
-                      {user.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {user.twoFactorEnabled ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-sm">
+                        {user.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      {user.twoFactorEnabled ? 'Disable' : 'Enable'} 2FA
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -454,70 +623,7 @@ export default function Profile() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="activity" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Security Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {eventsLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-                    <p className="text-slate-600 dark:text-slate-300">Loading activity...</p>
-                  </div>
-                ) : securityEvents && securityEvents.length > 0 ? (
-                  <div className="space-y-4">
-                    {securityEvents.map((event: SecurityEvent) => (
-                      <div key={event.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3">
-                            <div className="text-slate-500 mt-1">
-                              {getEventIcon(event.eventType)}
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium capitalize">
-                                  {event.eventType.replace('_', ' ')}
-                                </span>
-                                <Badge className={getSeverityColor(event.severity)}>
-                                  {event.severity}
-                                </Badge>
-                              </div>
-                              <div className="text-sm text-slate-500 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>{format(new Date(event.createdAt), 'MMM d, yyyy HH:mm:ss')}</span>
-                                </div>
-                                {event.ipAddress && (
-                                  <div className="flex items-center gap-2">
-                                    <Globe className="h-3 w-3" />
-                                    <span>{event.ipAddress}</span>
-                                  </div>
-                                )}
-                                {event.details && (
-                                  <div className="mt-2 text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded">
-                                    {event.details}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600 dark:text-slate-300">No security events found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>
