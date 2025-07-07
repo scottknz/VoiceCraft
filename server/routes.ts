@@ -219,6 +219,13 @@ User: ${userMessage.substring(0, 200)}`;
           content: msg.content
         }));
 
+      // Get voice profile if specified
+      let voiceProfile = null;
+      if (voiceProfileId) {
+        voiceProfile = await storage.getVoiceProfile(voiceProfileId);
+        console.log(`Using voice profile: ${voiceProfile?.name || 'Not found'}`);
+      }
+
       console.log(`Starting chat for model: ${model}`);
       console.log(`Conversation history: ${chatMessages.length} messages loaded`);
       
@@ -230,7 +237,8 @@ User: ${userMessage.substring(0, 200)}`;
       const { stream: responseStream, fullResponse } = await createChatStream({
         model: model as "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo",
         messages: chatMessages,
-        systemInstruction: "You are a helpful AI assistant."
+        systemInstruction: "You are a helpful AI assistant.",
+        voiceProfile: voiceProfile || undefined
       });
       
       // Save the complete response to database immediately

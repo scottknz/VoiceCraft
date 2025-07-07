@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
+import { generateNaturalVoicePrompt } from "./voicePromptGenerator";
+import type { VoiceProfile } from "@shared/schema";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
@@ -13,16 +15,26 @@ export interface ChatOptions {
   model: "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo";
   messages: ChatMessage[];
   systemInstruction?: string;
+  voiceProfile?: VoiceProfile;
   temperature?: number;
   maxTokens?: number;
 }
 
 export async function createChatResponse(options: ChatOptions): Promise<string> {
   try {
+    // Create voice-enhanced options
+    const enhancedOptions = { ...options };
+    
+    if (options.voiceProfile) {
+      const voicePrompt = generateNaturalVoicePrompt(options.voiceProfile);
+      const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
+      enhancedOptions.systemInstruction = `${baseInstruction}\n\nVOICE PROFILE INSTRUCTIONS:\n${voicePrompt}`;
+    }
+
     if (options.model.startsWith("gemini")) {
-      return await createGeminiResponse(options);
+      return await createGeminiResponse(enhancedOptions);
     } else {
-      return await createOpenAIResponse(options);
+      return await createOpenAIResponse(enhancedOptions);
     }
   } catch (error) {
     console.error("Chat API error:", error);
