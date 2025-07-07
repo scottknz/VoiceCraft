@@ -31,19 +31,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.user as any).id;
       
-      // Add userId to the request body before validation
-      const requestDataWithUserId = { ...req.body, userId };
-      
-      console.log("Request body with userId:", JSON.stringify(requestDataWithUserId, null, 2));
-      
       const result = insertVoiceProfileSchema.safeParse(req.body);
       if (!result.success) {
         console.log("Validation errors:", JSON.stringify(result.error.errors, null, 2));
         return res.status(400).json({ message: "Invalid voice profile data", errors: result.error.errors });
       }
 
-      const profileData = { ...result.data, userId };
+      // Create the profile with isActive set to true by default
+      const profileData = { ...result.data, userId, isActive: true };
       const profile = await storage.createVoiceProfile(profileData);
+      
+      // Set this as the active profile for the user
+      await storage.setActiveVoiceProfile(userId.toString(), profile.id);
+      
       res.status(201).json(profile);
     } catch (error) {
       console.error("Error creating voice profile:", error);
