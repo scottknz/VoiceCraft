@@ -156,13 +156,20 @@ export function useChat(conversationId: number | null) {
     setLocalMessages(prev => [...prev, tempAiMessage]);
 
     try {
-      const response = await apiRequest("POST", "/api/chat/stream", {
-        conversationId,
-        message,
-        model: selectedModel,
-        voiceProfileId: activeVoiceProfile?.id,
-      }, {
+      // Use fetch directly for streaming with proper credentials
+      const response = await fetch("/api/chat/stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies for authentication
         signal: controller.signal,
+        body: JSON.stringify({
+          conversationId,
+          message,
+          model: selectedModel,
+          voiceProfileId: activeVoiceProfile?.id,
+        }),
       });
 
       if (!response.ok) {
