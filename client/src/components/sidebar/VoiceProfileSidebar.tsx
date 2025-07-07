@@ -226,26 +226,10 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="mb-1">
                           <h4 className="font-medium text-sm truncate">
                             {profile.name}
                           </h4>
-                          <Badge 
-                            variant="secondary"
-                            className={`text-xs cursor-pointer transition-colors ${
-                              profile.isActive 
-                                ? "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500" 
-                                : "hover:bg-gray-200 dark:hover:bg-gray-600"
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!profile.isActive) {
-                                activateProfileMutation.mutate(profile.id);
-                              }
-                            }}
-                          >
-                            {profile.isActive ? "Active" : "Inactive"}
-                          </Badge>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
                           {profile.description || "No description"}
@@ -263,39 +247,57 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
-                          onClick={handleRefreshProfiles}
-                          disabled={refreshProfilesMutation.isPending}
-                          title="Refresh profiles"
-                        >
-                          <RefreshCw className="h-3 w-3 text-blue-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                          onClick={(e) => handleDeleteProfile(profile.id, e)}
-                          disabled={deleteProfileMutation.isPending}
-                          title="Delete profile"
-                        >
-                          <Trash2 className="h-3 w-3 text-red-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      <div className="flex items-center gap-1">
+                        <Badge 
+                          variant="secondary"
+                          className={`text-xs cursor-pointer transition-colors ${
+                            profile.isActive 
+                              ? "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500" 
+                              : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            openEditModal(profile);
+                            if (!profile.isActive) {
+                              activateProfileMutation.mutate(profile.id);
+                            }
                           }}
-                          title="Edit profile"
                         >
-                          <MoreVertical className="h-3 w-3 text-gray-500" />
-                        </Button>
+                          {profile.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                            onClick={handleRefreshProfiles}
+                            disabled={refreshProfilesMutation.isPending}
+                            title="Refresh profiles"
+                          >
+                            <RefreshCw className="h-3 w-3 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                            onClick={(e) => handleDeleteProfile(profile.id, e)}
+                            disabled={deleteProfileMutation.isPending}
+                            title="Delete profile"
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(profile);
+                            }}
+                            title="Edit profile"
+                          >
+                            <MoreVertical className="h-3 w-3 text-gray-500" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
