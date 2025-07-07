@@ -168,13 +168,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Regular chat endpoint (non-streaming)
-  app.post("/api/chat", requireAuth, async (req: any, res) => {
+  // Streaming chat endpoint
+  app.post("/api/chat/stream", requireAuth, async (req: any, res) => {
     try {
       const { conversationId, message, model, voiceProfileId } = req.body;
-      console.log("Chat request body:", JSON.stringify({ conversationId, message, model, voiceProfileId }, null, 2));
+      console.log("Streaming chat request:", JSON.stringify({ conversationId, message, model, voiceProfileId }, null, 2));
       
-      const userId = req.user.id.toString();
+      const userId = req.user.id;
       
       // Validate required fields
       if (!conversationId || !message) {
@@ -224,41 +224,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chat streaming endpoint
+  // Improved streaming endpoint
   app.post("/api/chat/stream", requireAuth, async (req: any, res) => {
     try {
-      const { messages, model, voiceProfileId } = req.body;
-      const userId = req.user.id.toString();
+      const { conversationId, message, model, voiceProfileId } = req.body;
+      const userId = req.user.id;
+      
+      // Validate conversation access
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Save user message first
+      await storage.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        model: model || "gemini-2.5-flash",
+        voiceProfileId: voiceProfileId || null,
+      });
+
+      // Get conversation history
+      const conversationMessages = await storage.getConversationMessages(conversationId);
+      const messages = conversationMessages.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content
+      }));
       
       let voiceProfile = null;
       if (voiceProfileId) {
         voiceProfile = await storage.getVoiceProfile(voiceProfileId);
       }
 
-      const { stream } = await createChatStream({
+      // Set up SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const { stream, fullResponse } = await createChatStream({
         model: model || "gemini-2.5-flash",
         messages,
         voiceProfile
       });
 
-      res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Transfer-Encoding', 'chunked');
-      
       const reader = stream.getReader();
-      const pump = async (): Promise<void> => {
-        const { done, value } = await reader.read();
-        if (done) {
-          res.end();
-          return;
+      let accumulatedResponse = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = new TextDecoder().decode(value);
+          accumulatedResponse += chunk;
+          
+          // Send chunk to client
+          res.write(`data: ${JSON.stringify({ chunk, done: false })}\n\n`);
         }
-        res.write(value);
-        return pump();
-      };
-      
-      await pump();
+
+        // Send completion signal
+        res.write(`data: ${JSON.stringify({ chunk: "", done: true })}\n\n`);
+        
+        // Save final AI response to database
+        await storage.addMessage({
+          conversationId,
+          role: "assistant", 
+          content: accumulatedResponse,
+          model: model || "gemini-2.5-flash",
+          voiceProfileId: voiceProfileId || null,
+        });
+
+      } catch (streamError) {
+        console.error("Streaming error:", streamError);
+        res.write(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`);
+      } finally {
+        res.end();
+      }
+
     } catch (error) {
-      console.error("Error in chat stream:", error);
-      res.status(500).json({ message: "Failed to process chat request" });
+      console.error("Error in streaming chat:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to process streaming chat request" });
+      }
     }
   });
 

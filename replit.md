@@ -168,3 +168,15 @@ Changelog:
   - All API routes now use requireAuth middleware for proper authentication
   - Users can register new accounts and login independently without external dependencies
   - Authentication system includes password strength validation and user feedback
+- July 07, 2025. **CRITICAL BUG FIX**: Resolved conversation ownership validation errors preventing message sending
+  - Fixed user ID type mismatch between authentication system (integers) and database operations (mixed types)
+  - Updated storage interface and implementation to use consistent integer user IDs throughout
+  - Corrected conversation ownership validation logic preventing "Conversation not found or access denied" errors
+  - Chat system now works properly for message sending and conversation management
+- July 07, 2025. **ENHANCED CHAT EXPERIENCE**: Implemented real-time streaming responses and instant message display
+  - Added SSE (Server-Sent Events) streaming endpoint for real-time AI response delivery
+  - Updated frontend to display user messages instantly upon sending (no delay)
+  - AI responses now stream letter-by-letter for better user experience
+  - Chat input enabled streaming by default for faster perceived response times
+  - Maintained fallback to non-streaming for reliability
+  - Improved message persistence and database synchronization after streaming completes
