@@ -76,8 +76,7 @@ export async function createGeminiChatStream(options: GeminiChatOptions): Promis
               for (const word of words) {
                 if (word.trim()) {
                   controller.enqueue(new TextEncoder().encode(word));
-                  // Small delay for smoother visual effect
-                  await new Promise(resolve => setTimeout(resolve, 10));
+                  // Remove artificial delay for faster streaming
                 } else {
                   controller.enqueue(new TextEncoder().encode(word)); // whitespace
                 }

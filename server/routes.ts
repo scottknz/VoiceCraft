@@ -199,26 +199,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Conversation not found or access denied" });
       }
       
-      // Get conversation history to build messages array
-      const conversationMessages = await storage.getConversationMessages(conversationId);
+      // Save user message immediately and start streaming
+      await storage.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        model: null,
+        voiceProfileId: null
+      });
+
+      // Get conversation history in parallel with voice profile loading
+      const [conversationMessages, voiceProfile] = await Promise.all([
+        storage.getConversationMessages(conversationId),
+        voiceProfileId ? storage.getVoiceProfile(voiceProfileId) : Promise.resolve(null)
+      ]);
       
-      // Build messages array from conversation history + current message
-      const messages = [
-        ...conversationMessages.map(msg => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content
-        })),
-        {
-          role: "user" as const,
-          content: message
-        }
-      ];
-      
-      let voiceProfile = null;
-      if (voiceProfileId) {
-        voiceProfile = await storage.getVoiceProfile(voiceProfileId);
-        console.log("Voice profile loaded:", JSON.stringify(voiceProfile, null, 2));
-      }
+      // Build messages array from conversation history (now includes the new user message)
+      const messages = conversationMessages.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content
+      }));
 
       // Set up streaming headers
       res.writeHead(200, {
