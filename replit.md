@@ -138,3 +138,8 @@ Changelog:
   - Personality & Values: Moral tone, preferred stance (Challenger/Coach/Collaborator/Curator), ethical boundaries, humor level
   - Tabbed interface with comprehensive form validation and dynamic field management
   - Database schema expanded with all voice profile dimensions stored as structured data
+- July 07, 2025. **FIXED MESSAGE PERSISTENCE**: Resolved disappearing user messages in new conversations
+  - Simplified conversation switching logic to prevent clearing chat history prematurely
+  - Messages now persist properly when starting new conversations
+  - Fixed race condition between user message display and conversation changes
+  - Chat history now always reflects the most current database state
