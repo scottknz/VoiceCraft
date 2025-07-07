@@ -198,11 +198,22 @@ export default function ConversationList() {
                     <h4 className="text-sm truncate text-gray-900 dark:text-gray-100">
                       {conversation.title || `Conversation ${conversation.id}`}
                     </h4>
-                    {currentConversation?.id === conversation.id && (
-                      <Badge variant="secondary" className="text-xs">
-                        Active
-                      </Badge>
-                    )}
+                    <Badge 
+                      variant={currentConversation?.id === conversation.id ? "default" : "secondary"}
+                      className={`text-xs cursor-pointer transition-colors ${
+                        currentConversation?.id === conversation.id
+                          ? "bg-green-500 hover:bg-green-600 text-white" 
+                          : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (currentConversation?.id !== conversation.id) {
+                          handleConversationClick(conversation);
+                        }
+                      }}
+                    >
+                      {currentConversation?.id === conversation.id ? "Active" : "Inactive"}
+                    </Badge>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button

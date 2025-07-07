@@ -229,11 +229,22 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                           <h4 className="font-medium text-sm truncate">
                             {profile.name}
                           </h4>
-                          {profile.isActive && (
-                            <Badge variant="default" className="text-xs">
-                              Active
-                            </Badge>
-                          )}
+                          <Badge 
+                            variant={profile.isActive ? "default" : "secondary"}
+                            className={`text-xs cursor-pointer transition-colors ${
+                              profile.isActive 
+                                ? "bg-green-500 hover:bg-green-600 text-white" 
+                                : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!profile.isActive) {
+                                activateProfileMutation.mutate(profile.id);
+                              }
+                            }}
+                          >
+                            {profile.isActive ? "Active" : "Inactive"}
+                          </Badge>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
                           {profile.description || "No description"}
