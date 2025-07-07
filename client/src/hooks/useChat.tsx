@@ -220,8 +220,27 @@ export function useChat(conversationId: number | null) {
 
             try {
               const parsed = JSON.parse(data);
-              if (parsed.content) {
-                accumulatedContent += parsed.content;
+              console.log("Parsed streaming data:", parsed);
+              
+              if (parsed.done) {
+                console.log("Streaming complete");
+                setIsStreaming(false);
+                
+                // Replace temporary message with final content
+                setLocalMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === tempAiMessage.id 
+                      ? { ...msg, content: accumulatedContent, isTemporary: false }
+                      : msg
+                  )
+                );
+
+                return { response: accumulatedContent };
+              }
+              
+              if (parsed.chunk) {
+                console.log("Received chunk:", parsed.chunk);
+                accumulatedContent += parsed.chunk;
                 setStreamingContent(accumulatedContent);
                 
                 // Update temporary message in real-time
@@ -234,17 +253,21 @@ export function useChat(conversationId: number | null) {
                 );
               }
             } catch (e) {
-              // Ignore parsing errors
+              console.error("Error parsing streaming data:", e, "Data:", data);
             }
           }
         }
       }
     } catch (error) {
+      console.error("Streaming error:", error);
       setIsStreaming(false);
       setStreamingContent("");
-      // Remove temporary AI message on error
+      // Remove temporary AI message on error and fall back to regular API
       setLocalMessages(prev => prev.filter(msg => msg.id !== tempAiMessage.id));
-      throw error;
+      
+      // Fall back to regular response on streaming error
+      console.log("Falling back to regular response");
+      return handleRegularResponse(conversationId, message);
     } finally {
       abortControllerRef.current = null;
     }
