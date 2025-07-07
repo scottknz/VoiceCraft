@@ -252,6 +252,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         voiceProfileId: voiceProfileId || null
       });
 
+      // Auto-generate title if conversation doesn't have one and this is first AI response
+      const conversation = await storage.getConversation(conversationId);
+      if (conversation && !conversation.title) {
+        const allMessages = await storage.getConversationMessages(conversationId);
+        // Only generate title if we have both user and AI messages
+        if (allMessages.length >= 2) {
+          try {
+            const firstUserMessage = allMessages.find(m => m.role === "user");
+            if (firstUserMessage) {
+              const titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question and AI response:
+
+User: ${firstUserMessage.content}
+
+AI: ${response.substring(0, 200)}...
+
+Respond with only the title, no quotes or additional text.`;
+
+              const titleResponse = await createChatResponse({
+                model: "gemini-2.5-flash",
+                messages: [{ role: "user", content: titlePrompt }],
+              });
+
+              const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
+              await storage.updateConversation(conversationId, { title: cleanTitle });
+              console.log(`Auto-generated title for conversation ${conversationId}: ${cleanTitle}`);
+            }
+          } catch (titleError) {
+            console.error("Failed to auto-generate title:", titleError);
+          }
+        }
+      }
+
       res.json({ response });
     } catch (error) {
       console.error("Error in chat:", error);
@@ -334,6 +366,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           voiceProfileId: voiceProfileId || null,
         });
 
+        // Auto-generate title if conversation doesn't have one and this is first AI response
+        const conversation = await storage.getConversation(conversationId);
+        if (conversation && !conversation.title) {
+          const allMessages = await storage.getConversationMessages(conversationId);
+          // Only generate title if we have both user and AI messages
+          if (allMessages.length >= 2) {
+            try {
+              const firstUserMessage = allMessages.find(m => m.role === "user");
+              if (firstUserMessage) {
+                const titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question and AI response:
+
+User: ${firstUserMessage.content}
+
+AI: ${accumulatedResponse.substring(0, 200)}...
+
+Respond with only the title, no quotes or additional text.`;
+
+                const titleResponse = await createChatResponse({
+                  model: "gemini-2.5-flash",
+                  messages: [{ role: "user", content: titlePrompt }],
+                });
+
+                const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
+                await storage.updateConversation(conversationId, { title: cleanTitle });
+                console.log(`Auto-generated title for conversation ${conversationId}: ${cleanTitle}`);
+              }
+            } catch (titleError) {
+              console.error("Failed to auto-generate title:", titleError);
+            }
+          }
+        }
+
       } catch (streamError) {
         console.error("Streaming error:", streamError);
         res.write(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`);
@@ -346,6 +410,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!res.headersSent) {
         res.status(500).json({ message: "Failed to process streaming chat request" });
       }
+    }
+  });
+
+  // Generate conversation title
+  app.post("/api/conversations/:id/generate-title", requireAuth, async (req: any, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      // Validate conversation ownership
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found or access denied" });
+      }
+      
+      // Get conversation messages
+      const messages = await storage.getConversationMessages(conversationId);
+      if (messages.length === 0) {
+        return res.status(400).json({ message: "Cannot generate title for empty conversation" });
+      }
+      
+      // Get first user message and first AI response to create title
+      const firstUserMessage = messages.find(m => m.role === "user");
+      const firstAIMessage = messages.find(m => m.role === "assistant");
+      
+      if (!firstUserMessage) {
+        return res.status(400).json({ message: "No user message found" });
+      }
+      
+      let titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question`;
+      if (firstAIMessage) {
+        titlePrompt += ` and AI response`;
+      }
+      titlePrompt += `:\n\nUser: ${firstUserMessage.content}`;
+      if (firstAIMessage) {
+        titlePrompt += `\n\nAI: ${firstAIMessage.content.substring(0, 200)}...`;
+      }
+      titlePrompt += `\n\nRespond with only the title, no quotes or additional text.`;
+      
+      // Generate title using AI
+      const titleResponse = await createChatResponse({
+        model: "gemini-2.5-flash",
+        messages: [{ role: "user", content: titlePrompt }],
+      });
+      
+      // Clean up the title (remove quotes, trim, limit length)
+      const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
+      
+      // Update conversation with generated title
+      await storage.updateConversation(conversationId, { title: cleanTitle });
+      
+      res.json({ title: cleanTitle });
+      
+    } catch (error) {
+      console.error("Error generating title:", error);
+      res.status(500).json({ message: "Failed to generate title" });
     }
   });
 
