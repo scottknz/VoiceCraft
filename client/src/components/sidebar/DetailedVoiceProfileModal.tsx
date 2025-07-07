@@ -42,7 +42,9 @@ const formattingLabels = {
   markupStyle: ["Plain Text", "Light Formatting", "Markdown", "Rich Markdown", "HTML Elements", "Full HTML"]
 };
 
-const formSchema = insertVoiceProfileSchema.extend({
+const formSchema = insertVoiceProfileSchema.omit({
+  userId: true,
+}).extend({
   name: z.string().min(1, "Name is required"),
 });
 
@@ -75,19 +77,10 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
 
   const mutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
-      console.log("Mutation starting with data:", data);
       const url = profile ? `/api/voice-profiles/${profile.id}` : "/api/voice-profiles";
       const method = profile ? "PATCH" : "POST";
-      console.log(`Making ${method} request to ${url}`);
-      
-      try {
-        const response = await apiRequest(method, url, data);
-        console.log("API response received:", response.status);
-        return response.json();
-      } catch (error) {
-        console.error("Mutation error:", error);
-        throw error;
-      }
+      const response = await apiRequest(method, url, data);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -587,11 +580,7 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={mutation.isPending}
-                onClick={() => console.log("Submit button clicked", form.formState.isValid, form.formState.errors)}
-              >
+              <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? "Saving..." : profile ? "Update Profile" : "Create Profile"}
               </Button>
             </div>
