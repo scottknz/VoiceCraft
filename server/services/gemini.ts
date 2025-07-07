@@ -38,48 +38,68 @@ export async function createGeminiChat(options: GeminiChatOptions): Promise<stri
 
 export async function createGeminiChatStream(options: GeminiChatOptions): Promise<ReadableStream> {
   try {
-    const lastMessage = options.messages[options.messages.length - 1];
-    const prompt = options.systemInstruction 
-      ? `${options.systemInstruction}\n\nUser: ${lastMessage.parts[0].text}`
-      : lastMessage.parts[0].text;
-
-    console.log(`Calling Gemini API with prompt: "${prompt.substring(0, 100)}..."`);
+    console.log("Starting Gemini streaming with proper API usage...");
     
-    // Use Gemini's real streaming API
-    console.log("Starting real Gemini streaming...");
-    
-    const result = await genAI.models.generateContentStream({
+    // Build the request in the format Gemini expects
+    const requestOptions: any = {
       model: options.model,
-      contents: prompt,
-      config: {
-        temperature: options.temperature || 0.7,
-        maxOutputTokens: options.maxOutputTokens || 1000,
-      },
-    });
+      contents: options.messages,
+    };
+
+    if (options.systemInstruction) {
+      requestOptions.systemInstruction = options.systemInstruction;
+    }
+
+    if (options.temperature !== undefined) {
+      requestOptions.generationConfig = {
+        temperature: options.temperature,
+        maxOutputTokens: options.maxOutputTokens,
+      };
+    }
+
+    console.log("Gemini request options:", JSON.stringify(requestOptions, null, 2));
     
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Stream real-time chunks from Gemini
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
+          // Get streaming result from Gemini
+          const result = await genAI.models.generateContentStream(requestOptions);
+          
+          // Stream text chunks as they arrive
+          for await (const chunk of result) {
+            const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
             if (chunkText) {
-              // Send just the text chunk - routes.ts handles SSE formatting
+              console.log("Gemini chunk received:", chunkText.length, "chars");
               controller.enqueue(new TextEncoder().encode(chunkText));
             }
           }
           controller.close();
-        } catch (error) {
-          console.error("Error in Gemini stream:", error);
-          controller.error(error);
+          console.log("Gemini streaming completed successfully");
+        } catch (streamError) {
+          console.error("Error in Gemini streaming:", streamError);
+          // Fallback to regular response if streaming fails
+          try {
+            const fallbackResponse = await genAI.models.generateContent({
+              model: options.model,
+              contents: options.messages,
+              systemInstruction: options.systemInstruction,
+            });
+            
+            const text = fallbackResponse.text || "I apologize, but I'm having trouble generating a response.";
+            controller.enqueue(new TextEncoder().encode(text));
+            controller.close();
+          } catch (fallbackError) {
+            console.error("Fallback response also failed:", fallbackError);
+            controller.error(fallbackError);
+          }
         }
       },
     });
 
     return stream;
   } catch (error) {
-    console.error("Gemini streaming error:", error);
-    throw new Error(`Gemini streaming error: ${error.message}`);
+    console.error("Gemini streaming setup error:", error);
+    throw error;
   }
 }
 
