@@ -359,6 +359,83 @@ Respond with only the title, no quotes or additional text.`;
     }
   });
 
+  // AI User Session endpoint with DeepSeek R1T2 Chimera
+  app.post("/api/ai-session", requireAuth, async (req, res) => {
+    try {
+      const { message, context } = req.body;
+      const userId = req.user?.id;
+
+      if (!message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      // Create AI session using DeepSeek R1T2 Chimera
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.ROUTER_API_KEY}`,
+          "HTTP-Referer": `${req.protocol}://${req.get('host')}`,
+          "X-Title": "AI Voice Assistant - User Session",
+        },
+        body: JSON.stringify({
+          model: "tngtech/deepseek-r1t2-chimera:free",
+          messages: [
+            {
+              role: "system",
+              content: context || "You are a helpful AI assistant. Provide clear, concise, and accurate responses."
+            },
+            {
+              role: "user",
+              content: message
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`DeepSeek API error: ${response.status} ${response.statusText}`, errorText);
+        
+        if (response.status === 401) {
+          return res.status(503).json({ 
+            message: "DeepSeek AI service unavailable. Please check API configuration.",
+            error: "authentication_failed"
+          });
+        }
+        
+        return res.status(503).json({ 
+          message: "AI service temporarily unavailable. Please try again later.",
+          error: "service_error"
+        });
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || "No response generated";
+
+      // Log the session for analytics
+      console.log(`AI Session - User ${userId}: ${message.substring(0, 50)}... -> ${aiResponse.substring(0, 50)}...`);
+
+      res.json({
+        response: aiResponse,
+        model: "tngtech/deepseek-r1t2-chimera:free",
+        userId: userId,
+        timestamp: new Date().toISOString(),
+        usage: data.usage || null
+      });
+
+    } catch (error) {
+      console.error("AI session error:", error);
+      res.status(500).json({ 
+        message: "Failed to process AI session",
+        error: "internal_error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

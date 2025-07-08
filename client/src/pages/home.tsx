@@ -44,6 +44,12 @@ export default function Home() {
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   AI Voice Assistant
                 </h2>
+                <a 
+                  href="/ai-session" 
+                  className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 ml-4"
+                >
+                  Test AI Session
+                </a>
               </div>
               
               <div className="flex items-center gap-2">

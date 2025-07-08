@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
+import AISessionPage from "@/pages/ai-session";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,6 +25,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/profile" component={Profile} />
+          <Route path="/ai-session" component={AISessionPage} />
         </>
       )}
       <Route component={NotFound} />
