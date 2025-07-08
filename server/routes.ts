@@ -239,14 +239,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Conversation not found or access denied" });
       }
       
-      // Save user message immediately and start streaming
-      await storage.addMessage({
+      // Save user message in background (non-blocking)
+      const userMessagePromise = storage.addMessage({
         conversationId,
         role: "user",
         content: message,
         model: null,
         voiceProfileId: null
       });
+
+      // Set up streaming headers immediately - no waiting
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      // Send immediate start signal for instant response
+      res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
 
       // Get conversation history in parallel with voice profile loading
       const [conversationMessages, voiceProfile] = await Promise.all([
@@ -259,18 +271,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: msg.role as "user" | "assistant",
         content: msg.content
       }));
-
-      // Set up streaming headers immediately
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-      });
-
-      // Send immediate start signal for instant response like reference
-      res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
 
       // Start AI streaming immediately - database operations happen in parallel
       const { stream, fullResponse } = await createChatStream({
@@ -291,8 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const chunk = new TextDecoder().decode(value);
           accumulatedResponse += chunk;
           
-          // Send SSE formatted chunk with 'content' key to match frontend expectations
+          // Send SSE formatted chunk with 'content' key - flush immediately for real-time streaming
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+          res.flushHeaders ? res.flushHeaders() : undefined;
         }
         
         // Send completion signal to match reference

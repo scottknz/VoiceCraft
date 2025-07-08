@@ -111,22 +111,24 @@ export function useChat(conversationId: number | null) {
 
       setLocalMessages(prev => [...prev, userMessage]);
 
-      // 2. Save user message to database in background (non-blocking)
-      apiRequest("POST", "/api/messages", {
-        conversationId,
-        role: "user",
-        content: message,
-      }).then(async (response) => {
-        const userMessageData = await response.json();
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === userMessage.id 
-              ? { ...userMessageData, id: userMessageData.id, createdAt: new Date(userMessageData.createdAt) }
-              : msg
-          )
-        );
-      }).catch(error => {
-        console.error("Background user message save failed:", error);
+      // 2. Save user message to database in background (completely non-blocking)
+      Promise.resolve().then(() => {
+        apiRequest("POST", "/api/messages", {
+          conversationId,
+          role: "user",
+          content: message,
+        }).then(async (response) => {
+          const userMessageData = await response.json();
+          setLocalMessages(prev => 
+            prev.map(msg => 
+              msg.id === userMessage.id 
+                ? { ...userMessageData, id: userMessageData.id, createdAt: new Date(userMessageData.createdAt) }
+                : msg
+            )
+          );
+        }).catch(error => {
+          console.error("Background user message save failed:", error);
+        });
       });
 
       // 3. Start streaming immediately - match reference behavior
@@ -282,7 +284,7 @@ export function useChat(conversationId: number | null) {
                 accumulatedContent += parsed.content;
                 setStreamingContent(accumulatedContent);
                 
-                // Update temporary message in real-time with better performance
+                // Update temporary message in real-time with immediate effect
                 setLocalMessages(prev => 
                   prev.map(msg => 
                     msg.id === tempAiMessage.id 

@@ -78,6 +78,8 @@ export default function MessageInput() {
     }
 
     const messageText = message.trim();
+    
+    // Clear input immediately before any async operations
     setMessage("");
 
     try {
