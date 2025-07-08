@@ -31,6 +31,11 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
       const voicePrompt = generateNaturalVoicePrompt(options.voiceProfile);
       const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
       enhancedOptions.systemInstruction = `${baseInstruction}\n\nVOICE PROFILE INSTRUCTIONS:\n${voicePrompt}`;
+      
+      console.log("=== VOICE PROFILE APPLIED ===");
+      console.log("Profile Name:", options.voiceProfile.name);
+      console.log("Full System Instruction:", enhancedOptions.systemInstruction);
+      console.log("============================");
     }
 
     if (options.model.startsWith("gemini")) {
@@ -169,17 +174,31 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
   try {
     let fullResponseText = '';
     
-    if (options.model.startsWith('gemini')) {
+    // Create voice-enhanced options for streaming
+    const enhancedOptions = { ...options };
+    
+    if (options.voiceProfile) {
+      const voicePrompt = generateNaturalVoicePrompt(options.voiceProfile);
+      const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
+      enhancedOptions.systemInstruction = `${baseInstruction}\n\nVOICE PROFILE INSTRUCTIONS:\n${voicePrompt}`;
+      
+      console.log("=== STREAMING VOICE PROFILE APPLIED ===");
+      console.log("Profile Name:", options.voiceProfile.name);
+      console.log("Full System Instruction:", enhancedOptions.systemInstruction);
+      console.log("======================================");
+    }
+    
+    if (enhancedOptions.model.startsWith('gemini')) {
       // Use real Gemini streaming
       const geminiOptions: import('./gemini').GeminiChatOptions = {
-        model: options.model as "gemini-2.5-pro" | "gemini-2.5-flash",
-        messages: options.messages.map(msg => ({
+        model: enhancedOptions.model as "gemini-2.5-pro" | "gemini-2.5-flash",
+        messages: enhancedOptions.messages.map(msg => ({
           role: msg.role === "user" ? "user" : "model",
           parts: [{ text: msg.content }]
         })),
-        systemInstruction: options.systemInstruction,
-        temperature: options.temperature,
-        maxOutputTokens: options.maxTokens,
+        systemInstruction: enhancedOptions.systemInstruction,
+        temperature: enhancedOptions.temperature,
+        maxOutputTokens: enhancedOptions.maxTokens,
       };
       
       const geminiStream = await import('./gemini').then(m => m.createGeminiChatStream(geminiOptions));
@@ -255,7 +274,7 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
       return { stream, fullResponse: Promise.resolve(fullResponseText) };
     } else {
       // Use Router API streaming for all other models
-      return await createRouterStream(options);
+      return await createRouterStream(enhancedOptions);
     }
     
   } catch (error) {
@@ -285,6 +304,11 @@ async function createRouterStream(options: ChatOptions): Promise<{ stream: Reada
       content: options.systemInstruction
     });
   }
+
+  console.log("=== ROUTER API REQUEST ===");
+  console.log("Model:", getRouterModelName(options.model));
+  console.log("Messages:", JSON.stringify(messages, null, 2));
+  console.log("========================");
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
