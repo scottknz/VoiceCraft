@@ -12,7 +12,9 @@ export interface ChatMessage {
 }
 
 export interface ChatOptions {
-  model: "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo";
+  model: "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo" | 
+         "claude-3-5-sonnet" | "claude-3-opus" | "claude-3-haiku" | 
+         "gpt-4-turbo" | "llama-3-70b" | "mixtral-8x7b";
   messages: ChatMessage[];
   systemInstruction?: string;
   voiceProfile?: VoiceProfile;
@@ -33,8 +35,10 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
 
     if (options.model.startsWith("gemini")) {
       return await createGeminiResponse(enhancedOptions);
-    } else {
+    } else if (options.model.startsWith("gpt-4o") || options.model.startsWith("gpt-3.5")) {
       return await createOpenAIResponse(enhancedOptions);
+    } else {
+      return await createRouterResponse(enhancedOptions);
     }
   } catch (error) {
     console.error("Chat API error:", error);
@@ -109,6 +113,55 @@ async function createOpenAIResponse(options: ChatOptions): Promise<string> {
   }
   
   return text;
+}
+
+async function createRouterResponse(options: ChatOptions): Promise<string> {
+  const messages = options.messages.map(msg => ({
+    role: msg.role as "user" | "assistant",
+    content: msg.content
+  }));
+
+  if (options.systemInstruction) {
+    messages.unshift({
+      role: "system" as const,
+      content: options.systemInstruction
+    });
+  }
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.ROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "X-Title": "AI Voice Assistant"
+    },
+    body: JSON.stringify({
+      model: getRouterModelName(options.model),
+      messages: messages,
+      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens || 1500,
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Router API error: ${error}`);
+  }
+
+  const result = await response.json();
+  return result.choices[0].message.content || "";
+}
+
+function getRouterModelName(model: string): string {
+  const modelMap: { [key: string]: string } = {
+    "claude-3-5-sonnet": "anthropic/claude-3-5-sonnet",
+    "claude-3-opus": "anthropic/claude-3-opus",
+    "claude-3-haiku": "anthropic/claude-3-haiku",
+    "gpt-4-turbo": "openai/gpt-4-turbo",
+    "llama-3-70b": "meta-llama/llama-3-70b-instruct",
+    "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct"
+  };
+  return modelMap[model] || model;
 }
 
 export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: Promise<string> }> {
@@ -214,4 +267,89 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
     
     return { stream, fullResponse: Promise.resolve(errorMessage) };
   }
+}
+
+async function createRouterStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: Promise<string> }> {
+  const messages = options.messages.map(msg => ({
+    role: msg.role as "user" | "assistant",
+    content: msg.content
+  }));
+
+  if (options.systemInstruction) {
+    messages.unshift({
+      role: "system" as const,
+      content: options.systemInstruction
+    });
+  }
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.ROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "X-Title": "AI Voice Assistant"
+    },
+    body: JSON.stringify({
+      model: getRouterModelName(options.model),
+      messages: messages,
+      temperature: options.temperature || 0.7,
+      max_tokens: options.maxTokens || 1500,
+      stream: true
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Router API error: ${response.status}`);
+  }
+
+  let fullResponseText = '';
+  let fullResponsePromiseResolve: (value: string) => void;
+  const fullResponsePromise = new Promise<string>((resolve) => {
+    fullResponsePromiseResolve = resolve;
+  });
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                controller.close();
+                fullResponsePromiseResolve(fullResponseText);
+                return;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                if (content) {
+                  fullResponseText += content;
+                  controller.enqueue(new TextEncoder().encode(content));
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      } catch (error) {
+        controller.error(error);
+      } finally {
+        reader.releaseLock();
+      }
+    }
+  });
+
+  return { stream, fullResponse: fullResponsePromise };
 }

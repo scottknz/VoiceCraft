@@ -23,6 +23,7 @@ An AI-powered voice assistant application that allows users to create custom voi
 ### AI Integration
 - **Primary AI Provider**: OpenAI (GPT-4o, GPT-3.5-turbo)
 - **Secondary AI Provider**: Google Gemini (2.5-pro, 2.5-flash)
+- **Router API Provider**: OpenRouter for multiple AI models (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, GPT-4 Turbo, Llama 3 70B, Mixtral 8x7B)
 - **Embeddings**: OpenAI embeddings for text analysis and similarity matching
 - **Vector Search**: Cosine similarity for finding relevant writing samples
 
@@ -92,6 +93,7 @@ An AI-powered voice assistant application that allows users to create custom voi
 - `DATABASE_URL`: PostgreSQL connection string
 - `OPENAI_API_KEY`: OpenAI API key
 - `GEMINI_API_KEY`: Google Gemini API key
+- `ROUTER_API_KEY`: OpenRouter API key for multiple AI model access
 - `SESSION_SECRET`: Session encryption key
 - `REPLIT_DOMAINS`: Allowed domains for Replit Auth
 
@@ -228,3 +230,10 @@ Changelog:
   - Tab 3: Voice Characteristics (nested tabs for tone, structure, formatting, personality)
   - Improved user experience with logical workflow progression
   - Maintained all existing functionality while enhancing organization
+- July 08, 2025. **ROUTER API INTEGRATION**: Added OpenRouter API support for multiple AI models
+  - Integrated 6 new AI models: Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, GPT-4 Turbo, Llama 3 70B, Mixtral 8x7B
+  - Added ROUTER_API_KEY environment variable for unified API access
+  - Implemented router streaming support for real-time responses
+  - Updated model selection UI to display all available AI models with provider labels
+  - Enhanced chat service with automatic model routing based on selection
+  - All router models support voice profile enhancement and streaming responses
