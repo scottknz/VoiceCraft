@@ -6,8 +6,6 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput.complex";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bot } from "lucide-react";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useToast } from "@/hooks/use-toast";
 import type { VoiceProfile } from "@shared/schema";
@@ -52,18 +50,7 @@ export default function ChatInterface() {
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
       {/* Top Bar */}
       <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {activeVoiceProfile && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  <Bot className="h-3 w-3 mr-1" />
-                  {activeVoiceProfile.name}
-                </Badge>
-              </div>
-            )}
-          </div>
-          
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-3">
             <Select value={selectedModel} onValueChange={setSelectedModel}>
               <SelectTrigger className="w-48">
