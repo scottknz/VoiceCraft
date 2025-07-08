@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DetailedVoiceProfileModal from "./DetailedVoiceProfileModal";
 import ConversationList from "./ConversationList";
-import { Plus, FileText, Calendar, MoreVertical, User, Settings, X, Trash2 } from "lucide-react";
+import { Plus, FileText, Calendar, MoreVertical, User, Settings, LogOut, X, RefreshCw, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { VoiceProfile } from "@shared/schema";
@@ -34,10 +34,9 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
       await apiRequest("POST", `/api/voice-profiles/${profileId}/activate`);
     },
     onSuccess: () => {
-      // Invalidate voice profiles to trigger refetch and update ChatContext
       queryClient.invalidateQueries({ queryKey: ["/api/voice-profiles"] });
       toast({
-        title: "Success", 
+        title: "Success",
         description: "Voice profile activated successfully",
       });
     },
@@ -110,7 +109,25 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
     setShowModal(true);
   };
 
-  // Removed refresh mutation - no longer needed
+  const refreshProfilesMutation = useMutation({
+    mutationFn: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/voice-profiles"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/voice-profiles"] });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Voice profiles refreshed",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error", 
+        description: "Failed to refresh voice profiles",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleDeleteProfile = (profileId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -119,7 +136,10 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
     }
   };
 
-  // Removed refresh handler - no longer needed
+  const handleRefreshProfiles = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    refreshProfilesMutation.mutate();
+  };
 
   if (isLoading) {
     return (
@@ -198,86 +218,83 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                   className={`cursor-pointer transition-all hover:shadow-md group ${
                     profile.isActive
                       ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
-                      : "h-12" // Minimize inactive profiles
+                      : ""
                   }`}
                   onClick={() => handleProfileClick(profile)}
                 >
-                  <CardContent className={profile.isActive ? "p-4" : "p-2"}>
-                    <div className="relative">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-medium text-sm truncate">
-                              {profile.name}
-                            </h4>
-                            {profile.isActive ? (
-                              <Badge 
-                                variant="secondary"
-                                className="bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-2 ml-2"
-                              >
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge 
-                                variant="secondary"
-                                className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer ml-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  activateProfileMutation.mutate(profile.id);
-                                }}
-                                title="Click to activate"
-                              >
-                                Inactive
-                              </Badge>
-                            )}
-                          </div>
-                          {profile.isActive && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                              <p className="line-clamp-1">
-                                {profile.description || "No description"}
-                              </p>
-                              <div className="flex items-center gap-3">
-                                <span className="flex items-center gap-1">
-                                  <FileText className="h-3 w-3" />
-                                  {profile.samplesCount || 0}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {profile.createdAt
-                                    ? new Date(profile.createdAt).toLocaleDateString()
-                                    : "Unknown"}
-                                </span>
-                              </div>
-                            </div>
-                          )}
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm truncate">
+                            {profile.name}
+                          </h4>
+                          <Badge 
+                            variant="secondary"
+                            className={`text-xs cursor-pointer transition-colors ${
+                              profile.isActive 
+                                ? "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500" 
+                                : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!profile.isActive) {
+                                activateProfileMutation.mutate(profile.id);
+                              }
+                            }}
+                          >
+                            {profile.isActive ? "Active" : "Inactive"}
+                          </Badge>
                         </div>
-                        
-                        {profile.isActive && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                              onClick={(e) => handleDeleteProfile(profile.id, e)}
-                              disabled={deleteProfileMutation.isPending}
-                              title="Delete profile"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditModal(profile);
-                              }}
-                              title="Edit profile"
-                            >
-                              <MoreVertical className="h-3 w-3 text-gray-500" />
-                            </Button>
-                          </div>
-                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+                          {profile.description || "No description"}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {profile.samplesCount || 0} samples
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {profile.createdAt
+                              ? new Date(profile.createdAt).toLocaleDateString()
+                              : "Unknown"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                          onClick={handleRefreshProfiles}
+                          disabled={refreshProfilesMutation.isPending}
+                          title="Refresh profiles"
+                        >
+                          <RefreshCw className="h-3 w-3 text-blue-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                          onClick={(e) => handleDeleteProfile(profile.id, e)}
+                          disabled={deleteProfileMutation.isPending}
+                          title="Delete profile"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(profile);
+                          }}
+                          title="Edit profile"
+                        >
+                          <MoreVertical className="h-3 w-3 text-gray-500" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -324,6 +341,16 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                window.location.href = "/api/logout";
+              }}
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>

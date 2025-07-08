@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import VoiceProfileSidebar from "@/components/sidebar/VoiceProfileSidebar";
 import ChatInterface from "@/components/chat/ChatInterface";
+import ComparisonView from "@/components/comparison/ComparisonView";
 import { Button } from "@/components/ui/button";
 import { ChatProvider } from "@/contexts/ChatContext";
-import { Moon, Sun, Menu, LogOut } from "lucide-react";
+import { MessageCircle, Columns, Moon, Sun, Menu } from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
+  const [viewMode, setViewMode] = useState<"chat" | "compare">("chat");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -46,7 +48,29 @@ export default function Home() {
                 </h2>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {/* View Toggle */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+                  <Button
+                    variant={viewMode === "chat" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("chat")}
+                    className="px-3 py-2"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    Chat
+                  </Button>
+                  <Button
+                    variant={viewMode === "compare" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("compare")}
+                    className="px-3 py-2"
+                  >
+                    <Columns className="h-4 w-4 mr-1" />
+                    Compare
+                  </Button>
+                </div>
+                
                 {/* Theme Toggle */}
                 <Button
                   variant="ghost"
@@ -59,22 +83,17 @@ export default function Home() {
                     <Moon className="h-5 w-5 text-slate-600" />
                   )}
                 </Button>
-                
-                {/* Logout */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.location.href = '/api/logout'}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
 
           {/* Main View */}
           <div className="flex-1 overflow-hidden">
-            <ChatInterface />
+            {viewMode === "chat" ? (
+              <ChatInterface />
+            ) : (
+              <ComparisonView />
+            )}
           </div>
         </div>
       </div>

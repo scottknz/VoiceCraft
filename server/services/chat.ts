@@ -43,36 +43,21 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
 }
 
 async function createGeminiResponse(options: ChatOptions): Promise<string> {
-  // Validate messages array
-  if (!options.messages || !Array.isArray(options.messages) || options.messages.length === 0) {
-    throw new Error("Messages array is required and must not be empty");
-  }
-
   const lastMessage = options.messages[options.messages.length - 1];
   const prompt = options.systemInstruction 
     ? `${options.systemInstruction}\n\n${lastMessage.content}`
     : lastMessage.content;
 
-  // Generate voice profile instructions if profile exists
-  let voiceInstructions = "";
-  if (options.voiceProfile) {
-    const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
-    voiceInstructions = generateVoiceSystemPrompt(options.voiceProfile);
-    console.log("Generated voice instructions:", voiceInstructions);
-  }
-  
-  const fullPrompt = voiceInstructions ? `${voiceInstructions}\n\nUser: ${lastMessage.content}` : prompt;
-  console.log(`Calling Gemini with full prompt: "${fullPrompt.substring(0, 200)}..."`);
+  console.log(`Calling Gemini with prompt: "${prompt.substring(0, 100)}..."`);
 
   const response = await genAI.models.generateContent({
     model: options.model,
-    contents: fullPrompt,
+    contents: prompt,
   });
 
   const text = response.text || "";
   console.log(`Gemini response: "${text.substring(0, 100)}..." (length: ${text.length})`);
   
-  return text;
   if (!text.trim()) {
     throw new Error("Gemini returned empty response");
   }
@@ -111,107 +96,37 @@ async function createOpenAIResponse(options: ChatOptions): Promise<string> {
   return text;
 }
 
-export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: Promise<string> }> {
+export async function createChatStream(options: ChatOptions): Promise<{ stream: ReadableStream, fullResponse: string }> {
   try {
-    let fullResponseText = '';
+    // For now, get the complete response and simulate streaming
+    const fullResponse = await createChatResponse(options);
     
-    if (options.model.startsWith('gemini')) {
-      // Use real Gemini streaming
-      const geminiOptions: import('./gemini').GeminiChatOptions = {
-        model: options.model as "gemini-2.5-pro" | "gemini-2.5-flash",
-        messages: options.messages.map(msg => ({
-          role: msg.role === "user" ? "user" : "model",
-          parts: [{ text: msg.content }]
-        })),
-        systemInstruction: options.systemInstruction,
-        temperature: options.temperature,
-        maxOutputTokens: options.maxTokens,
-      };
-      
-      const geminiStream = await import('./gemini').then(m => m.createGeminiChatStream(geminiOptions));
-      
-      // Create a new stream that captures the full response
-      let fullResponsePromiseResolve: (value: string) => void;
-      const fullResponsePromise = new Promise<string>((resolve) => {
-        fullResponsePromiseResolve = resolve;
-      });
-      
-      const stream = new ReadableStream({
-        async start(controller) {
-          const reader = geminiStream.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              const chunk = new TextDecoder().decode(value);
-              fullResponseText += chunk;
-              controller.enqueue(value);
-            }
-            controller.close();
-            fullResponsePromiseResolve(fullResponseText);
-          } catch (error) {
-            controller.error(error);
-            fullResponsePromiseResolve(fullResponseText || "Error occurred during streaming");
-          } finally {
-            reader.releaseLock();
-          }
+    const stream = new ReadableStream({
+      async start(controller) {
+        const words = fullResponse.split(" ");
+        for (let i = 0; i < words.length; i++) {
+          const word = words[i] + (i < words.length - 1 ? " " : "");
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: word })}\n\n`));
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-      });
-      
-      return { stream, fullResponse: fullResponsePromise };
-      
-    } else {
-      // Use OpenAI streaming
-      const openaiOptions: import('./openai').ChatCompletionOptions = {
-        model: options.model as "gpt-4o" | "gpt-3.5-turbo",
-        messages: options.messages.map(msg => ({
-          role: msg.role as "system" | "user" | "assistant",
-          content: msg.content
-        })),
-        temperature: options.temperature,
-        maxTokens: options.maxTokens,
-        stream: true,
-      };
-      
-      const openaiStream = await import('./openai').then(m => m.createChatCompletionStream(openaiOptions));
-      
-      // Create a new stream that captures the full response
-      const stream = new ReadableStream({
-        async start(controller) {
-          const reader = openaiStream.getReader();
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              
-              const chunk = new TextDecoder().decode(value);
-              fullResponseText += chunk;
-              controller.enqueue(value);
-            }
-            controller.close();
-          } catch (error) {
-            controller.error(error);
-          } finally {
-            reader.releaseLock();
-          }
-        }
-      });
-      
-      return { stream, fullResponse: Promise.resolve(fullResponseText) };
-    }
-    
+        controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+        controller.close();
+      }
+    });
+
+    return { stream, fullResponse };
   } catch (error) {
     console.error("Chat stream error:", error);
     const errorMessage = "I apologize, but I encountered an error generating a response. Please try again.";
     
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode(errorMessage));
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: errorMessage })}\n\n`));
+        controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
         controller.close();
       }
     });
     
-    return { stream, fullResponse: Promise.resolve(errorMessage) };
+    return { stream, fullResponse: errorMessage };
   }
 }

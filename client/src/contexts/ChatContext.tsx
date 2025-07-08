@@ -44,40 +44,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  // Auto-select the most recent conversation when conversations load, but handle deletions
+  // Auto-select the most recent conversation when conversations load
   useEffect(() => {
-    if (conversations.length > 0) {
-      // If no current conversation, select the first one (most recent)
-      if (!currentConversation) {
-        console.log("Auto-selecting first conversation:", conversations[0]);
-        setCurrentConversation(conversations[0]);
-      } else {
-        // If current conversation was deleted, select the first one or clear if none
-        const stillExists = conversations.find(c => c.id === currentConversation.id);
-        if (!stillExists) {
-          console.log("Current conversation deleted, selecting first:", conversations[0]);
-          setCurrentConversation(conversations[0] || null);
-        }
-        // Do not auto-select if current conversation still exists - prevents bouncing
-      }
-    } else if (currentConversation) {
-      // If all conversations are deleted, clear current conversation
-      console.log("No conversations left, clearing current conversation");
-      setCurrentConversation(null);
+    if (conversations.length > 0 && !currentConversation) {
+      setCurrentConversation(conversations[0]); // First item is most recent due to orderBy updatedAt desc
     }
-  }, [conversations.length, currentConversation?.id]); // Use specific dependencies to prevent over-triggering
+  }, [conversations, currentConversation]);
 
-  // Track active voice profile and ensure it updates when profiles change
+  // Track active voice profile
   useEffect(() => {
     const activeProfile = voiceProfiles.find(profile => profile.isActive);
-    if (activeProfile && (!activeVoiceProfile || activeVoiceProfile.id !== activeProfile.id)) {
-      console.log("Setting active voice profile:", activeProfile.name);
-      setActiveVoiceProfile(activeProfile);
-    } else if (!activeProfile && activeVoiceProfile) {
-      console.log("Clearing active voice profile");
-      setActiveVoiceProfile(null);
-    }
-  }, [voiceProfiles, activeVoiceProfile]);
+    setActiveVoiceProfile(activeProfile || null);
+  }, [voiceProfiles]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {
@@ -85,12 +63,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (conversation) => {
-      console.log("New conversation created:", conversation);
-      
-      // Set the new conversation immediately to prevent auto-selection interference
       setCurrentConversation(conversation);
-      
-      // Invalidate conversations query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     },
     onError: (error) => {

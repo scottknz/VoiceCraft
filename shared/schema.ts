@@ -25,54 +25,21 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table with independent authentication
+// User storage table for Replit Auth
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: varchar("username").unique().notNull(),
-  email: varchar("email").unique().notNull(),
-  password: varchar("password").notNull(), // Hashed password
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  emailVerified: boolean("email_verified").default(false),
-  accountStatus: varchar("account_status").default("active"), // active, suspended, pending
-  lastLoginAt: timestamp("last_login_at"),
-  loginCount: integer("login_count").default(0),
-  preferredLanguage: varchar("preferred_language").default("en"),
-  timezone: varchar("timezone"),
-  twoFactorEnabled: boolean("two_factor_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// User sessions table for enhanced session tracking
-export const userSessions = pgTable("user_sessions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  sessionId: varchar("session_id").notNull().unique(),
-  ipAddress: varchar("ip_address"),
-  userAgent: text("user_agent"),
-  isActive: boolean("is_active").default(true),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Security events table for audit logging
-export const securityEvents = pgTable("security_events", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
-  eventType: varchar("event_type").notNull(), // login, logout, password_change, profile_update, etc.
-  ipAddress: varchar("ip_address"),
-  userAgent: text("user_agent"),
-  details: text("details"), // JSON string for additional event data
-  severity: varchar("severity").default("info"), // info, warning, critical
-  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Voice profiles table
 export const voiceProfiles = pgTable("voice_profiles", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name").notNull(),
   description: text("description"),
   
@@ -126,7 +93,7 @@ export const embeddings = pgTable("embeddings", {
 // Chat conversations table
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: varchar("title"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -147,22 +114,6 @@ export const messages = pgTable("messages", {
 export const usersRelations = relations(users, ({ many }) => ({
   voiceProfiles: many(voiceProfiles),
   conversations: many(conversations),
-  sessions: many(userSessions),
-  securityEvents: many(securityEvents),
-}));
-
-export const userSessionsRelations = relations(userSessions, ({ one }) => ({
-  user: one(users, {
-    fields: [userSessions.userId],
-    references: [users.id],
-  }),
-}));
-
-export const securityEventsRelations = relations(securityEvents, ({ one }) => ({
-  user: one(users, {
-    fields: [securityEvents.userId],
-    references: [users.id],
-  }),
 }));
 
 export const voiceProfilesRelations = relations(voiceProfiles, ({ one, many }) => ({
@@ -211,17 +162,8 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 // Insert schemas
 export const insertVoiceProfileSchema = createInsertSchema(voiceProfiles).omit({
   id: true,
-  userId: true, // We'll add this separately
   createdAt: true,
   updatedAt: true,
-}).extend({
-  // Handle optional fields that can be null or empty strings
-  description: z.string().nullable().optional(),
-  purpose: z.string().nullable().optional(),
-  structurePreferences: z.string().nullable().optional(),
-  moralTone: z.string().nullable().optional(),
-  preferredStance: z.string().nullable().optional(),
-  humourLevel: z.string().nullable().optional(),
 });
 
 export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({
@@ -238,9 +180,6 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  title: z.string().nullable().optional(),
-  userId: z.number().int().positive(),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
@@ -251,10 +190,6 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type UserSession = typeof userSessions.$inferSelect;
-export type InsertUserSession = typeof userSessions.$inferInsert;
-export type SecurityEvent = typeof securityEvents.$inferSelect;
-export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
 export type VoiceProfile = typeof voiceProfiles.$inferSelect;
 export type InsertVoiceProfile = z.infer<typeof insertVoiceProfileSchema>;
 export type WritingSample = typeof writingSamples.$inferSelect;

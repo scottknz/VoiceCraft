@@ -1,27 +1,30 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 
 export default function MessageInput() {
   const [message, setMessage] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const {
+    selectedModel,
     activeVoiceProfile,
     currentConversation,
     createNewConversation,
-    selectedModel,
+    accumulatedContent,
+    setAccumulatedContent
   } = useChatContext();
 
   // Query to check if any conversations exist
@@ -30,104 +33,220 @@ export default function MessageInput() {
     retry: false,
   });
 
-  // Auto-create conversation only when user sends a message and no conversations exist
-  const autoCreateConversationForMessage = async () => {
-    if (conversations.length === 0 && !currentConversation && !isCreatingConversation) {
+  const stopStreaming = async () => {
+    if (abortController && currentConversation) {
+      // Save accumulated content before aborting
+      if (accumulatedContent.trim()) {
+        try {
+          await apiRequest("POST", "/api/messages", {
+            conversationId: currentConversation.id,
+            role: "assistant",
+            content: accumulatedContent.trim(),
+          });
+          // No refresh here - causes race conditions
+        } catch (error) {
+          console.error("Failed to save partial response:", error);
+        }
+      }
+      
+      abortController.abort();
+      setAbortController(null);
+      setIsStreaming(false);
+      setAccumulatedContent("");
+      
+      // Dispatch stop event to reset UI
+      window.dispatchEvent(new CustomEvent('streamingMessage', { 
+        detail: { content: "", done: true, reset: true } 
+      }));
+    }
+  };
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ message, stream }: { message: string; stream: boolean }) => {
+      if (!currentConversation) {
+        throw new Error("No active conversation");
+      }
+
+      // Show user message immediately in chat history
+      window.dispatchEvent(new CustomEvent('userMessage', { 
+        detail: { message } 
+      }));
+
+      // Server-first: Save user message to database
+      console.log("Saving user message to database...");
+      await apiRequest("POST", "/api/messages", {
+        conversationId: currentConversation.id,
+        role: "user",
+        content: message,
+      });
+
+      // Notify UI to refresh from database
+      window.dispatchEvent(new CustomEvent('messageSaved', { 
+        detail: { type: 'user', message } 
+      }));
+
+      const requestBody = {
+        conversationId: currentConversation.id,
+        message,
+        model: selectedModel,
+        stream: stream,
+        voiceProfileId: activeVoiceProfile?.id,
+      };
+
+      if (stream) {
+        const controller = new AbortController();
+        setAbortController(controller);
+
+        const response = await apiRequest("POST", "/api/chat", requestBody, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response;
+      } else {
+        const response = await apiRequest("POST", "/api/chat", requestBody);
+        return response.json();
+      }
+    },
+    onSuccess: async (response) => {
+      if (response instanceof Response) {
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        if (!reader) return;
+
+        setAccumulatedContent(""); // Reset at start
+        let localAccumulated = ""; // Track locally to avoid stale state
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = new TextDecoder().decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') {
+                  setIsStreaming(false);
+                  setAbortController(null);
+                  
+                  console.log(`Streaming complete. Accumulated content length: ${localAccumulated.length}`);
+                  
+                  // Dispatch done event with full response for chat history
+                  window.dispatchEvent(new CustomEvent('streamingMessage', { 
+                    detail: { content: "", done: true, fullResponse: localAccumulated } 
+                  }));
+                  
+                  setAccumulatedContent("");
+                  
+                  // Wait a moment for server to save, then notify database refresh
+                  setTimeout(() => {
+                    console.log("AI response streaming complete - requesting database refresh");
+                    window.dispatchEvent(new CustomEvent('messageSaved', { 
+                      detail: { type: 'assistant' } 
+                    }));
+                  }, 1000);
+                  
+                  return;
+                }
+
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.content) {
+                    localAccumulated += parsed.content;
+                    console.log(`Accumulating content: ${localAccumulated.length - parsed.content.length} + ${parsed.content.length} = ${localAccumulated.length}`);
+                    
+                    setAccumulatedContent((prev: string) => prev + parsed.content);
+                    // Dispatch streaming event
+                    window.dispatchEvent(new CustomEvent('streamingMessage', { 
+                      detail: { content: parsed.content, done: false } 
+                    }));
+                  }
+                } catch (e) {
+                  // Ignore parsing errors
+                }
+              }
+            }
+          }
+        } catch (error) {
+          setIsStreaming(false);
+          setAbortController(null);
+          setAccumulatedContent("");
+          
+          if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+            console.log("Streaming aborted by user");
+            // Don't show error toast for user-initiated aborts
+            return;
+          } else {
+            console.error("Streaming error:", error);
+            toast({
+              title: "Error",
+              description: "Failed to receive streaming response",
+              variant: "destructive",
+            });
+          }
+        }
+      } else {
+        // Handle non-streaming response - let MessageList handle refresh
+      }
+    },
+    onError: (error) => {
+      setIsStreaming(false);
+      setAbortController(null);
+      setAccumulatedContent("");
+      
+      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+        console.log("Request aborted by user");
+        // Don't show error toast for user-initiated aborts
+        return;
+      }
+      
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      console.error("Chat error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMessageChange = async (value: string) => {
+    setMessage(value);
+    
+    // Auto-create conversation when user starts typing if NO conversations exist at all
+    if (value.trim() && conversations.length === 0 && !isCreatingConversation) {
       setIsCreatingConversation(true);
       try {
         await createNewConversation();
       } catch (error) {
         console.error("Failed to auto-create conversation:", error);
-        if (isUnauthorizedError(error as Error)) {
-          toast({
-            title: "Session expired",
-            description: "Please log in again",
-            variant: "destructive",
-          });
-          window.location.href = "/api/login";
-        }
-        throw error; // Re-throw to prevent message sending
       } finally {
         setIsCreatingConversation(false);
       }
     }
   };
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageText: string) => {
-      if (!currentConversation) {
-        throw new Error("No active conversation");
-      }
-
-      try {
-        // Save user message first
-        const userMessageResponse = await apiRequest("POST", "/api/messages", {
-          conversationId: currentConversation.id,
-          role: "user",
-          content: messageText,
-        });
-
-        if (!userMessageResponse.ok) {
-          throw new Error(`Failed to save user message: ${userMessageResponse.status}`);
-        }
-
-        // Get AI response
-        const aiResponse = await apiRequest("POST", "/api/chat", {
-          conversationId: currentConversation.id,
-          message: messageText,
-          model: selectedModel,
-          voiceProfileId: activeVoiceProfile?.id,
-        });
-
-        if (!aiResponse.ok) {
-          throw new Error(`Failed to get AI response: ${aiResponse.status}`);
-        }
-
-        return await aiResponse.json();
-      } catch (error) {
-        console.error("Message send error:", error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch messages
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/conversations/${currentConversation?.id}/messages`] 
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to send message:", error);
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Session expired",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        window.location.href = "/api/login";
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to send message. Please try again.",
-          variant: "destructive",
-        });
-      }
-    },
-  });
-
   const handleSend = async () => {
     if (!message.trim() || sendMessageMutation.isPending) return;
 
-    // Auto-create conversation if none exist and user is sending a message
-    if (!currentConversation && conversations.length === 0) {
-      try {
-        await autoCreateConversationForMessage();
-      } catch (error) {
-        return; // Don't send message if conversation creation failed
-      }
-    }
-
-    // Ensure we have a conversation after auto-creation
+    // Don't send if no conversation is selected
     if (!currentConversation) {
       toast({
         title: "No conversation selected",
@@ -137,10 +256,12 @@ export default function MessageInput() {
       return;
     }
 
-    const messageText = message.trim();
+    setIsStreaming(true);
+    sendMessageMutation.mutate({ 
+      message: message.trim(), 
+      stream: true 
+    });
     setMessage("");
-
-    sendMessageMutation.mutate(messageText);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -150,12 +271,13 @@ export default function MessageInput() {
     }
   };
 
-  // Focus input when conversation changes
   useEffect(() => {
-    if (currentConversation && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [currentConversation]);
+  }, []);
+
+  const isLoading = sendMessageMutation.isPending || isStreaming || isCreatingConversation;
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -174,27 +296,32 @@ export default function MessageInput() {
       <div className="flex items-center space-x-2">
         <Input
           ref={inputRef}
-          placeholder={
-            isCreatingConversation 
-              ? "Creating conversation..." 
-              : sendMessageMutation.isPending
-              ? "Sending..."
-              : "Type your message..."
-          }
+          placeholder={isCreatingConversation ? "Creating conversation..." : "Type your message..."}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => handleMessageChange(e.target.value)}
           onKeyPress={handleKeyPress}
-          disabled={sendMessageMutation.isPending || isCreatingConversation}
+          disabled={isLoading}
           className="flex-1"
         />
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || sendMessageMutation.isPending || isCreatingConversation}
-          size="sm"
-          className="px-3"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isStreaming ? (
+          <Button
+            onClick={stopStreaming}
+            variant="destructive"
+            size="sm"
+            className="px-3"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={!message.trim() || isLoading}
+            size="sm"
+            className="px-3"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

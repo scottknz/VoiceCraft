@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, X, RefreshCw } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import type { Conversation } from "@shared/schema";
 
 export default function ConversationList() {
   const { toast } = useToast();
-  const { currentConversation, setCurrentConversation, setAccumulatedContent } = useChatContext();
+  const { currentConversation, setCurrentConversation } = useChatContext();
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -20,18 +20,12 @@ export default function ConversationList() {
 
   const createConversationMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/conversations", {
-        title: "New Conversation"
-      });
+      const response = await apiRequest("POST", "/api/conversations", {});
       return response.json();
     },
     onSuccess: (newConversation) => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setCurrentConversation(newConversation);
-      // Clear accumulated content to reset chat window
-      if (setAccumulatedContent) {
-        setAccumulatedContent("");
-      }
       toast({
         title: "Success",
         description: "New conversation created",
@@ -93,17 +87,41 @@ export default function ConversationList() {
     },
   });
 
-  // Regenerate title mutation removed for cleaner interface
+  const regenerateTitleMutation = useMutation({
+    mutationFn: async (conversationId: number) => {
+      await apiRequest("POST", `/api/conversations/${conversationId}/generate-title`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({
+        title: "Success",
+        description: "Title regenerated successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to regenerate title",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleDeleteConversation = (conversationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Prevent multiple deletion attempts
-    if (deleteConversationMutation.isPending) {
-      return;
-    }
-    
-    // If we're deleting the current conversation, clear it first
+    // If we're deleting the current conversation, clear it
     if (currentConversation?.id === conversationId) {
       setCurrentConversation(null);
     }
@@ -111,7 +129,10 @@ export default function ConversationList() {
     deleteConversationMutation.mutate(conversationId);
   };
 
-  // Regenerate title handler removed for cleaner interface
+  const handleRegenerateTitle = (conversationId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    regenerateTitleMutation.mutate(conversationId);
+  };
 
 
 
@@ -173,12 +194,10 @@ export default function ConversationList() {
             >
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
                     <h4 className="text-sm truncate text-gray-900 dark:text-gray-100">
                       {conversation.title || `Conversation ${conversation.id}`}
                     </h4>
-                  </div>
-                  <div className="flex items-center gap-1">
                     <Badge 
                       variant="secondary"
                       className={`text-xs cursor-pointer transition-colors ${
@@ -195,19 +214,28 @@ export default function ConversationList() {
                     >
                       {currentConversation?.id === conversation.id ? "Active" : "Inactive"}
                     </Badge>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Regenerate title button removed for cleaner interface */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                        onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                        disabled={deleteConversationMutation.isPending}
-                        title="Delete conversation"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-500" />
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      onClick={(e) => handleRegenerateTitle(conversation.id, e)}
+                      disabled={regenerateTitleMutation.isPending}
+                      title="Regenerate title"
+                    >
+                      <RefreshCw className="h-3 w-3 text-blue-500" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                      onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                      disabled={deleteConversationMutation.isPending}
+                      title="Delete conversation"
+                    >
+                      <X className="h-3 w-3 text-red-500" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>

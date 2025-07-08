@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, requireAuth } from "./auth";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { 
   insertVoiceProfileSchema, 
   insertWritingSampleSchema, 
@@ -13,12 +13,24 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  setupAuth(app);
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Voice profile routes
-  app.get("/api/voice-profiles", requireAuth, async (req: any, res) => {
+  app.get('/api/voice-profiles', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user.claims.sub;
       const profiles = await storage.getUserVoiceProfiles(userId);
       res.json(profiles);
     } catch (error) {
@@ -27,61 +39,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/voice-profiles", requireAuth, async (req, res) => {
+  app.post('/api/voice-profiles', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
-      
-      const result = insertVoiceProfileSchema.safeParse(req.body);
-      if (!result.success) {
-        console.log("Validation errors:", JSON.stringify(result.error.errors, null, 2));
-        return res.status(400).json({ message: "Invalid voice profile data", errors: result.error.errors });
-      }
-
-      const profileData = { ...result.data, userId, isActive: true };
+      const userId = req.user.claims.sub;
+      const profileData = insertVoiceProfileSchema.parse({ 
+        ...req.body, 
+        userId 
+      });
       const profile = await storage.createVoiceProfile(profileData);
-      
-      await storage.setActiveVoiceProfile(userId, profile.id);
-      
-      res.status(201).json(profile);
+      res.json(profile);
     } catch (error) {
       console.error("Error creating voice profile:", error);
       res.status(500).json({ message: "Failed to create voice profile" });
     }
   });
 
-  app.patch("/api/voice-profiles/:id", requireAuth, async (req: any, res) => {
+  app.patch('/api/voice-profiles/:id', isAuthenticated, async (req: any, res) => {
     try {
       const profileId = parseInt(req.params.id);
-      const userId = req.user?.id;
-      
-      const existingProfile = await storage.getVoiceProfile(profileId);
-      if (!existingProfile || existingProfile.userId !== userId) {
-        return res.status(404).json({ message: "Voice profile not found or access denied" });
-      }
-
-      const result = insertVoiceProfileSchema.partial().safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid voice profile data", errors: result.error.errors });
-      }
-
-      const updatedProfile = await storage.updateVoiceProfile(profileId, result.data);
-      res.json(updatedProfile);
+      const updateData = insertVoiceProfileSchema.partial().parse(req.body);
+      const profile = await storage.updateVoiceProfile(profileId, updateData);
+      res.json(profile);
     } catch (error) {
       console.error("Error updating voice profile:", error);
       res.status(500).json({ message: "Failed to update voice profile" });
     }
   });
 
-  // Voice profile activation endpoint
-  app.post("/api/voice-profiles/:id/activate", requireAuth, async (req: any, res) => {
+  app.delete('/api/voice-profiles/:id', isAuthenticated, async (req: any, res) => {
     try {
       const profileId = parseInt(req.params.id);
-      const userId = req.user?.id;
-      
-      if (!userId) {
-        return res.status(401).json({ message: "User authentication failed" });
-      }
-      
+      await storage.deleteVoiceProfile(profileId);
+      res.json({ message: "Voice profile deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting voice profile:", error);
+      res.status(500).json({ message: "Failed to delete voice profile" });
+    }
+  });
+
+  app.post('/api/voice-profiles/:id/activate', isAuthenticated, async (req: any, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
       await storage.setActiveVoiceProfile(userId, profileId);
       res.json({ message: "Voice profile activated successfully" });
     } catch (error) {
@@ -90,32 +89,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/voice-profiles/:id", requireAuth, async (req: any, res) => {
-    try {
-      const profileId = parseInt(req.params.id);
-      const userId = req.user?.id;
-      
-      if (!userId) {
-        return res.status(401).json({ message: "User authentication failed" });
-      }
-      
-      const profile = await storage.getVoiceProfile(profileId);
-      if (!profile || profile.userId !== userId) {
-        return res.status(404).json({ message: "Voice profile not found or access denied" });
-      }
-
-      await storage.deleteVoiceProfile(profileId);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting voice profile:", error);
-      res.status(500).json({ message: "Failed to delete voice profile" });
-    }
-  });
-
   // Conversation routes
-  app.get("/api/conversations", requireAuth, async (req: any, res) => {
+  app.get('/api/conversations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user.claims.sub;
       const conversations = await storage.getUserConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -124,67 +101,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/conversations", requireAuth, async (req: any, res) => {
+  app.post('/api/conversations', isAuthenticated, async (req: any, res) => {
     try {
-      console.log("req.user:", req.user);
-      const userId = req.user?.id;
-      
-      if (!userId) {
-        console.error("No user ID found in request");
-        return res.status(401).json({ message: "User authentication failed" });
-      }
-      
-      const conversationData = {
-        title: req.body.title || "New Conversation",
-        userId: userId
-      };
-      
-      console.log("Creating conversation with data:", conversationData);
-      const result = insertConversationSchema.safeParse(conversationData);
-      
-      if (!result.success) {
-        console.error("Validation error:", result.error.errors);
-        return res.status(400).json({ message: "Invalid conversation data", errors: result.error.errors });
-      }
-
-      const conversation = await storage.createConversation(result.data);
-      res.status(201).json(conversation);
+      const userId = req.user.claims.sub;
+      const conversationData = insertConversationSchema.parse({ 
+        ...req.body, 
+        userId 
+      });
+      const conversation = await storage.createConversation(conversationData);
+      res.json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
       res.status(500).json({ message: "Failed to create conversation" });
     }
   });
 
-  app.delete("/api/conversations/:id", requireAuth, async (req: any, res) => {
+  app.get('/api/conversations/:id/messages', isAuthenticated, async (req: any, res) => {
     try {
       const conversationId = parseInt(req.params.id);
-      const userId = req.user?.id;
-      
-      const conversation = await storage.getConversation(conversationId);
-      if (!conversation || conversation.userId !== userId) {
-        return res.status(404).json({ message: "Conversation not found or access denied" });
-      }
-
-      await storage.deleteConversation(conversationId);
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting conversation:", error);
-      res.status(500).json({ message: "Failed to delete conversation" });
-    }
-  });
-
-  // Message routes
-  app.get("/api/conversations/:id/messages", requireAuth, async (req: any, res) => {
-    try {
-      const conversationId = parseInt(req.params.id);
-      const userId = req.user.id;
-      
-      const conversation = await storage.getConversation(conversationId);
-      if (!conversation || conversation.userId !== userId) {
-        return res.status(404).json({ message: "Conversation not found or access denied" });
-      }
-
+      console.log(`Fetching messages for conversation ${conversationId}`);
       const messages = await storage.getConversationMessages(conversationId);
+      console.log(`Found ${messages.length} messages:`, messages.map(m => ({id: m.id, role: m.role, content: m.content?.substring(0, 50) + '...'})));
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -192,96 +129,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/messages", requireAuth, async (req: any, res) => {
+  app.delete('/api/conversations/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const { conversationId, role, content, model, voiceProfileId } = req.body;
-      const userId = req.user?.id;
-
-      if (!conversationId || !role || !content) {
-        return res.status(400).json({ message: "Conversation ID, role, and content are required" });
-      }
-
-      const conversation = await storage.getConversation(conversationId);
-      if (!conversation || conversation.userId !== userId) {
-        return res.status(404).json({ message: "Conversation not found or access denied" });
-      }
-
-      const message = await storage.addMessage({
-        conversationId,
-        role: role as "user" | "assistant",
-        content,
-        model: model || null,
-        voiceProfileId: voiceProfileId || null,
-      });
-
-      res.json(message);
+      const conversationId = parseInt(req.params.id);
+      await storage.deleteConversation(conversationId);
+      res.json({ message: "Conversation deleted successfully" });
     } catch (error) {
-      console.error("Error creating message:", error);
-      res.status(500).json({ message: "Failed to create message" });
+      console.error("Error deleting conversation:", error);
+      res.status(500).json({ message: "Failed to delete conversation" });
     }
   });
 
-  // **FIXED STREAMING ENDPOINT** - Complete clean implementation
-  app.post("/api/chat/stream", requireAuth, async (req: any, res) => {
+  app.post('/api/conversations/:id/generate-title', isAuthenticated, async (req: any, res) => {
     try {
-      const { conversationId, message, model, voiceProfileId } = req.body;
-      console.log("Streaming chat request:", JSON.stringify({ conversationId, message, model, voiceProfileId }, null, 2));
+      const conversationId = parseInt(req.params.id);
+      const messages = await storage.getConversationMessages(conversationId);
       
-      const userId = req.user?.id;
+      if (messages.length < 1) {
+        res.status(400).json({ message: "Need at least 1 message to generate title" });
+        return;
+      }
+
+      // Get first user message and AI response
+      const userMessage = messages.find(m => m.role === 'user')?.content || "";
+      const aiMessage = messages.find(m => m.role === 'assistant')?.content || "";
       
-      if (!userId) {
-        return res.status(401).json({ message: "User authentication failed" });
+      // Generate title using AI
+      let titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
+
+User: ${userMessage.substring(0, 200)}`;
+      
+      if (aiMessage) {
+        titlePrompt += `\nAssistant: ${aiMessage.substring(0, 200)}`;
       }
       
-      // Validate conversation access
-      const conversation = await storage.getConversation(conversationId);
-      if (!conversation || conversation.userId !== userId) {
-        return res.status(404).json({ message: "Conversation not found or access denied" });
-      }
+      titlePrompt += `\n\nGenerate only the title, nothing else:`;
+
+      const { createChatResponse } = await import('./services/chat');
       
-      // Save user message immediately and start streaming
+      const title = await createChatResponse({
+        model: "gemini-2.5-flash",
+        messages: [{ role: "user", content: titlePrompt }],
+        temperature: 0.7,
+        maxTokens: 20
+      });
+
+      // Clean up the title - remove quotes and trim
+      const cleanTitle = title.replace(/['"]/g, '').trim();
+      
+      // Update conversation with new title
+      await storage.updateConversation(conversationId, { title: cleanTitle });
+      
+      res.json({ title: cleanTitle });
+    } catch (error) {
+      console.error("Error generating title:", error);
+      res.status(500).json({ message: "Failed to generate title" });
+    }
+  });
+
+  app.post('/api/messages', isAuthenticated, async (req: any, res) => {
+    try {
+      const messageData = insertMessageSchema.parse(req.body);
+      const message = await storage.addMessage(messageData);
+      res.json(message);
+    } catch (error) {
+      console.error("Error saving message:", error);
+      res.status(500).json({ message: "Failed to save message" });
+    }
+  });
+
+  // Chat completion routes
+  const chatSchema = z.object({
+    message: z.string(),
+    model: z.enum(["gpt-4o", "gpt-3.5-turbo", "gemini-2.5-pro", "gemini-2.5-flash"]),
+    conversationId: z.number(),
+    voiceProfileId: z.number().optional(),
+    stream: z.boolean().optional()
+  });
+
+  app.post('/api/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const { message, model, conversationId, voiceProfileId, stream = true } = chatSchema.parse(req.body);
+      
+      // Save user message
       await storage.addMessage({
         conversationId,
         role: "user",
         content: message,
-        model: null,
-        voiceProfileId: null
+        model,
+        voiceProfileId
       });
 
-      // Get conversation history in parallel with voice profile loading
-      const [conversationMessages, voiceProfile] = await Promise.all([
-        storage.getConversationMessages(conversationId),
-        voiceProfileId ? storage.getVoiceProfile(voiceProfileId) : Promise.resolve(null)
-      ]);
+      // Get conversation history
+      const conversationMessages = await storage.getConversationMessages(conversationId);
       
-      // Build messages array from conversation history (now includes the new user message)
-      const messages = conversationMessages.map(msg => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content
-      }));
+      // Prepare messages for chat service
+      const chatMessages = conversationMessages
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        }));
 
-      // Set up streaming headers immediately
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
+      // Get voice profile if specified
+      let voiceProfile = null;
+      if (voiceProfileId) {
+        voiceProfile = await storage.getVoiceProfile(voiceProfileId);
+        console.log(`Using voice profile: ${voiceProfile?.name || 'Not found'}`);
+      }
+
+      console.log(`Starting chat for model: ${model}`);
+      console.log(`Conversation history: ${chatMessages.length} messages loaded`);
+      
+      // Set up streaming response
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      const { stream: responseStream, fullResponse } = await createChatStream({
+        model: model as "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo",
+        messages: chatMessages,
+        systemInstruction: "You are a helpful AI assistant.",
+        voiceProfile: voiceProfile || undefined
       });
-
-      // Send immediate start signal for instant response like reference
-      res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
-
-      // Start AI streaming immediately - database operations happen in parallel
-      const { stream, fullResponse } = await createChatStream({
-        model: model || "gemini-2.5-flash",
-        messages,
-        voiceProfile
+      
+      // Save the complete response to database immediately
+      console.log(`Saving AI response: "${fullResponse.substring(0, 100)}..." (length: ${fullResponse.length})`);
+      const savedMessage = await storage.addMessage({
+        conversationId: conversationId,
+        role: 'assistant',
+        content: fullResponse
       });
+      console.log(`Message saved with ID: ${savedMessage.id}`);
 
-      // Stream the response
-      const reader = stream.getReader();
-      let accumulatedResponse = "";
+      // Generate title if this is the first AI response (conversation needs a title)
+      const conversation = await storage.getConversation(conversationId);
+      console.log(`Checking conversation for title generation. Current title: "${conversation?.title}"`);
+      
+      if (conversation && (!conversation.title || conversation.title.startsWith('New Conversation') || conversation.title === 'New Chat' || conversation.title.includes('/'))) {
+        console.log("Generating title for conversation...");
+        try {
+          const titlePrompt = `Based on this conversation, create a very short title (2-4 words maximum) that captures the main topic. No "chat", "conversation", or dates - just the core subject:
+
+User: ${message.substring(0, 200)}
+Assistant: ${fullResponse.substring(0, 200)}
+
+Generate only the title, nothing else:`;
+
+          console.log("Calling AI to generate title...");
+          const title = await createChatResponse({
+            model: "gemini-2.5-flash",
+            messages: [{ role: "user", content: titlePrompt }],
+            temperature: 0.7,
+            maxTokens: 10
+          });
+
+          const cleanTitle = title.replace(/['"]/g, '').trim();
+          console.log(`Generated raw title: "${title}", clean title: "${cleanTitle}"`);
+          
+          await storage.updateConversation(conversationId, { title: cleanTitle });
+          console.log(`Title updated in database: "${cleanTitle}"`);
+        } catch (error) {
+          console.error("Failed to generate title:", error);
+        }
+      } else {
+        console.log("Title generation skipped - conversation already has title or conditions not met");
+      }
+      
+      const reader = responseStream.getReader();
       
       try {
         while (true) {
@@ -289,70 +304,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (done) break;
           
           const chunk = new TextDecoder().decode(value);
-          accumulatedResponse += chunk;
-          
-          // Send SSE formatted chunk with 'content' key to match frontend expectations
-          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+          res.write(chunk);
         }
-        
-        // Send completion signal to match reference
-        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
-        
-        // Save to database - use accumulated response after streaming completes
-        if (accumulatedResponse.trim()) {
-          await storage.addMessage({
-            conversationId,
-            role: "assistant",
-            content: accumulatedResponse,
-            model: model || "gemini-2.5-flash",
-            voiceProfileId: voiceProfileId || null
-          });
-        }
-
-        // Auto-generate title if needed
-        const updatedConversation = await storage.getConversation(conversationId);
-        if (updatedConversation && !updatedConversation.title) {
-          const allMessages = await storage.getConversationMessages(conversationId);
-          if (allMessages.length >= 2) {
-            try {
-              const firstUserMessage = allMessages.find(m => m.role === "user");
-              if (firstUserMessage) {
-                const titlePrompt = `Generate a concise, descriptive title (2-6 words) for this conversation based on the user's question and AI response:
-
-User: ${firstUserMessage.content}
-
-AI: ${accumulatedResponse.substring(0, 200)}...
-
-Respond with only the title, no quotes or additional text.`;
-
-                const titleResponse = await createChatResponse({
-                  model: "gemini-2.5-flash",
-                  messages: [{ role: "user", content: titlePrompt }],
-                });
-
-                const cleanTitle = titleResponse.replace(/['"]/g, '').trim().substring(0, 60);
-                await storage.updateConversation(conversationId, { title: cleanTitle });
-                console.log(`Auto-generated title for conversation ${conversationId}: ${cleanTitle}`);
-              }
-            } catch (titleError) {
-              console.error("Failed to auto-generate title:", titleError);
-            }
-          }
-        }
-
-      } catch (streamError) {
-        console.error("Streaming error:", streamError);
-        res.write(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`);
+      } catch (error) {
+        console.error('Chat streaming error:', error);
+        res.write(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
       } finally {
-        reader.releaseLock();
         res.end();
       }
-      
     } catch (error) {
-      console.error("Error in streaming chat:", error);
-      if (!res.headersSent) {
-        res.status(500).json({ message: "Failed to process streaming chat request" });
-      }
+      console.error("Chat error:", error);
+      res.status(500).json({ error: "Failed to process chat request" });
     }
   });
 
