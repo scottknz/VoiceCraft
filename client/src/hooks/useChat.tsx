@@ -111,25 +111,7 @@ export function useChat(conversationId: number | null) {
 
       setLocalMessages(prev => [...prev, userMessage]);
 
-      // 2. Save user message to database in background (completely non-blocking)
-      Promise.resolve().then(() => {
-        apiRequest("POST", "/api/messages", {
-          conversationId,
-          role: "user",
-          content: message,
-        }).then(async (response) => {
-          const userMessageData = await response.json();
-          setLocalMessages(prev => 
-            prev.map(msg => 
-              msg.id === userMessage.id 
-                ? { ...userMessageData, id: userMessageData.id, createdAt: new Date(userMessageData.createdAt) }
-                : msg
-            )
-          );
-        }).catch(error => {
-          console.error("Background user message save failed:", error);
-        });
-      });
+      // 2. User message save now happens on backend during streaming - no frontend database operations
 
       // 3. Start streaming immediately - match reference behavior
       console.log("Starting immediate streaming response");

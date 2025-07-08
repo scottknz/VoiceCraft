@@ -239,16 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Conversation not found or access denied" });
       }
       
-      // Save user message in background (non-blocking)
-      const userMessagePromise = storage.addMessage({
-        conversationId,
-        role: "user",
-        content: message,
-        model: null,
-        voiceProfileId: null
-      });
-
-      // Set up streaming headers immediately - no waiting
+      // Set up streaming headers immediately - no waiting for any database operations
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -259,6 +250,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send immediate start signal for instant response
       res.write(`data: ${JSON.stringify({ type: "start" })}\n\n`);
+
+      // Save user message in background (completely non-blocking)
+      storage.addMessage({
+        conversationId,
+        role: "user",
+        content: message,
+        model: null,
+        voiceProfileId: null
+      }).catch(error => {
+        console.error("Background user message save failed:", error);
+      });
 
       // Get conversation history in parallel with voice profile loading
       const [conversationMessages, voiceProfile] = await Promise.all([
