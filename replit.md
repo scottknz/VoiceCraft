@@ -253,7 +253,13 @@ Changelog:
   - Implemented /api/ai-session endpoint using tngtech/deepseek-r1t2-chimera:free model via OpenRouter
   - Added authentication middleware and comprehensive error handling
   - Built interactive demo page with real-time messaging and session history tracking
-  - Integrated navigation link in main interface for easy access to AI session testing
   - Added DeepSeek model to dropdown menu in both chat interface and comparison view
   - Fixed React infinite loop warning in ChatContext by removing unnecessary dependency
   - All AI models now available in dropdown: OpenAI, Google, Anthropic, Meta, Mistral, TNG Tech models
+  - Removed test session link from header for cleaner interface
+  - **CRITICAL**: Message flow architecture confirmed working perfectly and must be preserved exactly as implemented
+    * Event-driven system with custom events (userMessage, messageSaved, streamingMessage)
+    * Immediate UI display for user messages with background database saves
+    * Real-time streaming for AI responses with proper state synchronization
+    * chatHistory state management prevents message loss or duplication
+    * Server-first design with database persistence and refresh capabilities
