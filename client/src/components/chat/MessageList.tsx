@@ -92,11 +92,12 @@ export default function MessageList() {
   const displayMessages = messages;
 
   // Auto-scroll to bottom when new messages arrive
+  const messageCount = displayMessages.length;
   useEffect(() => {
-    if (displayMessages.length > 0) {
+    if (messageCount > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [displayMessages.length]);
+  }, [messageCount]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
