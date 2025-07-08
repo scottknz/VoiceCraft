@@ -215,7 +215,7 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
       
       return { stream, fullResponse: fullResponsePromise };
       
-    } else {
+    } else if (options.model.startsWith("gpt-4o") || options.model.startsWith("gpt-3.5")) {
       // Use OpenAI streaming
       const openaiOptions: import('./openai').ChatCompletionOptions = {
         model: options.model as "gpt-4o" | "gpt-3.5-turbo",
@@ -253,6 +253,9 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
       });
       
       return { stream, fullResponse: Promise.resolve(fullResponseText) };
+    } else {
+      // Use Router API streaming for all other models
+      return await createRouterStream(options);
     }
     
   } catch (error) {
