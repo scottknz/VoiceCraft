@@ -58,6 +58,17 @@ export function useChat(conversationId: number | null) {
           return prev;
         }
         
+        // Check if messages are already the same to prevent re-renders
+        if (prev.length === dbMessages.length) {
+          const messagesMatch = prev.every((msg, index) => 
+            msg.id === dbMessages[index].id && 
+            msg.content === dbMessages[index].content
+          );
+          if (messagesMatch) {
+            return prev;
+          }
+        }
+        
         // Check if we need to update - prevent unnecessary re-renders
         const formattedMessages: ChatMessage[] = dbMessages.map(msg => ({
           ...msg,
