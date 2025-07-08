@@ -16,6 +16,7 @@ interface ChatContextType {
   createNewConversation: () => Promise<void>;
   accumulatedContent: string;
   setAccumulatedContent: React.Dispatch<React.SetStateAction<string>>;
+  addTemporaryMessage: (msg: ChatMessage) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -28,6 +29,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const addTemporaryMessage = (msg: ChatMessage) => {
+    setMessages(prev => [...prev, msg]);
+  };
   const [accumulatedContent, setAccumulatedContent] = useState<string>("");
 
   // Query conversations to auto-select the most recent one
@@ -154,6 +159,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       {children}
     </ChatContext.Provider>
   );
+    addTemporaryMessage,
 }
 
 export function useChatContext() {
