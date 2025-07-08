@@ -39,7 +39,7 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at"),
   loginCount: integer("login_count").default(0),
   preferredLanguage: varchar("preferred_language").default("en"),
-  timezone: varchar("timezone"),
+  timezone: varchar("timezone").default("UTC"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
