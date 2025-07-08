@@ -91,29 +91,28 @@ export function useChat(conversationId: number | null) {
   }, [dbMessages, conversationId]);
 
   // Send message mutation with optimistic updates
+  // Function to add user message instantly to UI
+  const addUserMessageToUI = (message: string) => {
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      conversationId: conversationId!,
+      role: "user",
+      content: message,
+      model: null,
+      voiceProfileId: activeVoiceProfile?.id || null,
+      createdAt: new Date(),
+      isTemporary: false,
+    };
+    setLocalMessages(prev => [...prev, userMessage]);
+  };
+
   const sendMessageMutation = useMutation({
     mutationFn: async ({ message, stream = true }: SendMessageOptions) => {
       if (!conversationId || !user) {
         throw new Error("No active conversation or user");
       }
 
-      // 1. Show user message instantly - no database wait
-      const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
-        conversationId,
-        role: "user",
-        content: message,
-        model: null,
-        voiceProfileId: activeVoiceProfile?.id || null,
-        createdAt: new Date(),
-        isTemporary: false, // Treat as permanent for instant display
-      };
-
-      setLocalMessages(prev => [...prev, userMessage]);
-
-      // 2. User message save now happens on backend during streaming - no frontend database operations
-
-      // 3. Start streaming immediately - match reference behavior
+      // Start streaming immediately - no UI delays
       console.log("Starting immediate streaming response");
       if (stream) {
         return handleStreamingResponse(conversationId, message);
@@ -318,6 +317,7 @@ export function useChat(conversationId: number | null) {
     isStreaming,
     streamingContent,
     sendMessage,
+    addUserMessageToUI,
     stopStreaming,
     isSending: sendMessageMutation.isPending,
   };

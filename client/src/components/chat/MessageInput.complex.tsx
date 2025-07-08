@@ -22,7 +22,7 @@ export default function MessageInput() {
     createNewConversation,
   } = useChatContext();
 
-  const { sendMessage, stopStreaming, isSending, isStreaming } = useChat(
+  const { sendMessage, addUserMessageToUI, stopStreaming, isSending, isStreaming } = useChat(
     currentConversation?.id || null
   );
 
@@ -82,10 +82,11 @@ export default function MessageInput() {
     // Clear input immediately before any async operations
     setMessage("");
 
-    try {
-      // Send with streaming by default for better UX
-      await sendMessage(messageText, true);
-    } catch (error) {
+    // Add user message to UI instantly
+    addUserMessageToUI(messageText);
+
+    // Send message asynchronously without blocking UI
+    sendMessage(messageText, true).catch(error => {
       console.error("Failed to send message:", error);
       if (isUnauthorizedError(error as Error)) {
         toast({
@@ -103,7 +104,7 @@ export default function MessageInput() {
         // Restore message on error
         setMessage(messageText);
       }
-    }
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
