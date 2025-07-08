@@ -50,6 +50,7 @@ export default function ChatInterface() {
     { value: "gpt-4-turbo", label: "GPT-4 Turbo (Router)" },
     { value: "llama-3-70b", label: "Llama 3 70B (Meta)" },
     { value: "mixtral-8x7b", label: "Mixtral 8x7B (Mistral)" },
+    { value: "deepseek-r1t2-chimera", label: "DeepSeek R1T2 Chimera (TNG Tech)" },
   ];
 
   return (

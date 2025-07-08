@@ -23,7 +23,7 @@ An AI-powered voice assistant application that allows users to create custom voi
 ### AI Integration
 - **Primary AI Provider**: OpenAI (GPT-4o, GPT-3.5-turbo)
 - **Secondary AI Provider**: Google Gemini (2.5-pro, 2.5-flash)
-- **Router API Provider**: OpenRouter for multiple AI models (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, GPT-4 Turbo, Llama 3 70B, Mixtral 8x7B)
+- **Router API Provider**: OpenRouter for multiple AI models (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, GPT-4 Turbo, Llama 3 70B, Mixtral 8x7B, DeepSeek R1T2 Chimera)
 - **Embeddings**: OpenAI embeddings for text analysis and similarity matching
 - **Vector Search**: Cosine similarity for finding relevant writing samples
 
@@ -237,3 +237,8 @@ Changelog:
   - Updated model selection UI to display all available AI models with provider labels
   - Enhanced chat service with automatic model routing based on selection
   - All router models support voice profile enhancement and streaming responses
+- July 08, 2025. **DEEPSEEK MODEL ADDITION**: Added DeepSeek R1T2 Chimera model support
+  - Integrated tngtech/deepseek-r1t2-chimera:free model through OpenRouter API
+  - Updated model selection UI in both chat interface and comparison view
+  - Added router mapping for DeepSeek model with proper API endpoint
+  - Enhanced model options with TNG Tech provider label for better user identification

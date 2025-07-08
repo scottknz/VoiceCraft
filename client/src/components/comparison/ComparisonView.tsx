@@ -76,6 +76,13 @@ export default function ComparisonView() {
     { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
     { value: "gemini-2.5-pro", label: "Gemini Pro" },
     { value: "gemini-2.5-flash", label: "Gemini Flash" },
+    { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
+    { value: "claude-3-opus", label: "Claude 3 Opus" },
+    { value: "claude-3-haiku", label: "Claude 3 Haiku" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+    { value: "llama-3-70b", label: "Llama 3 70B" },
+    { value: "mixtral-8x7b", label: "Mixtral 8x7B" },
+    { value: "deepseek-r1t2-chimera", label: "DeepSeek R1T2 Chimera" },
   ];
 
   return (

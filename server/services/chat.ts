@@ -14,7 +14,7 @@ export interface ChatMessage {
 export interface ChatOptions {
   model: "gemini-2.5-flash" | "gemini-2.5-pro" | "gpt-4o" | "gpt-3.5-turbo" | 
          "claude-3-5-sonnet" | "claude-3-opus" | "claude-3-haiku" | 
-         "gpt-4-turbo" | "llama-3-70b" | "mixtral-8x7b";
+         "gpt-4-turbo" | "llama-3-70b" | "mixtral-8x7b" | "deepseek-r1t2-chimera";
   messages: ChatMessage[];
   systemInstruction?: string;
   voiceProfile?: VoiceProfile;
@@ -159,7 +159,8 @@ function getRouterModelName(model: string): string {
     "claude-3-haiku": "anthropic/claude-3-haiku",
     "gpt-4-turbo": "openai/gpt-4-turbo",
     "llama-3-70b": "meta-llama/llama-3-70b-instruct",
-    "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct"
+    "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct",
+    "deepseek-r1t2-chimera": "tngtech/deepseek-r1t2-chimera:free"
   };
   return modelMap[model] || model;
 }
