@@ -86,25 +86,7 @@ export default function MessageInput() {
     addUserMessageToUI(messageText);
 
     // Send message asynchronously without blocking UI
-    sendMessage(messageText, true).catch(error => {
-      console.error("Failed to send message:", error);
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Session expired",
-          description: "Please log in again",
-          variant: "destructive",
-        });
-        window.location.href = "/api/login";
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to send message. Please try again.",
-          variant: "destructive",
-        });
-        // Restore message on error
-        setMessage(messageText);
-      }
-    });
+    sendMessage(messageText, true);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -24,7 +24,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
+  const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash");
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -132,8 +132,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setSelectedModel(savedModel);
     } else {
       // Reset to default if invalid model is stored
-      setSelectedModel("gpt-4o");
-      localStorage.setItem("selectedModel", "gpt-4o");
+      setSelectedModel("gemini-2.5-flash");
+      localStorage.setItem("selectedModel", "gemini-2.5-flash");
     }
   }, []);
 
