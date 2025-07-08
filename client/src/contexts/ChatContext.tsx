@@ -127,8 +127,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Load saved preferences
   useEffect(() => {
     const savedModel = localStorage.getItem("selectedModel");
-    if (savedModel) {
+    const validModels = ["gpt-4o", "gpt-3.5-turbo", "gemini-2.5-pro", "gemini-2.5-flash"];
+    if (savedModel && validModels.includes(savedModel)) {
       setSelectedModel(savedModel);
+    } else {
+      // Reset to default if invalid model is stored
+      setSelectedModel("gpt-4o");
+      localStorage.setItem("selectedModel", "gpt-4o");
     }
   }, []);
 

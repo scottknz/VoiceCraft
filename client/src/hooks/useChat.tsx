@@ -42,11 +42,25 @@ export function useChat(conversationId: number | null) {
     setIsStreaming(false);
   }, [conversationId]);
 
+  // Memoize formatted messages to prevent infinite loops
+  const formattedDbMessages = useMemo(() => {
+    return dbMessages.map(msg => ({
+      ...msg,
+      id: msg.id,
+      createdAt: new Date(msg.createdAt),
+    }));
+  }, [dbMessages]);
+
   // Sync database messages with local state - but preserve optimistic updates
   useEffect(() => {
-    if (dbMessages.length > 0) {
+    if (!conversationId) {
+      setLocalMessages([]);
+      return;
+    }
+    
+    if (formattedDbMessages.length > 0) {
       setLocalMessages(prev => {
-        // If we have temporary/optimistic messages, preserve them
+        // Check if we have temporary/optimistic messages
         const hasOptimisticMessages = prev.some(msg => 
           msg.id.toString().startsWith('user-') || 
           msg.id.toString().startsWith('temp-') ||
@@ -58,37 +72,19 @@ export function useChat(conversationId: number | null) {
           return prev;
         }
         
-        // Check if messages are already the same to prevent re-renders
-        if (prev.length === dbMessages.length) {
-          const messagesMatch = prev.every((msg, index) => 
-            msg.id === dbMessages[index].id && 
-            msg.content === dbMessages[index].content
-          );
-          if (messagesMatch) {
-            return prev;
-          }
-        }
-        
-        // Check if we need to update - prevent unnecessary re-renders
-        const formattedMessages: ChatMessage[] = dbMessages.map(msg => ({
-          ...msg,
-          id: msg.id,
-          createdAt: new Date(msg.createdAt),
-        }));
-        
-        // Only update if messages have actually changed
-        if (prev.length !== formattedMessages.length || 
-            prev.some((msg, index) => msg.id !== formattedMessages[index]?.id)) {
-          console.log("Updating messages from database:", formattedMessages.length, "messages");
-          return formattedMessages;
+        // Only update if there's actually a change
+        if (prev.length !== formattedDbMessages.length || 
+            prev.some((msg, index) => msg.id !== formattedDbMessages[index]?.id)) {
+          console.log("Updating messages from database:", formattedDbMessages.length, "messages");
+          return formattedDbMessages;
         }
         
         return prev;
       });
-    } else if (conversationId && localMessages.length === 0) {
+    } else {
       setLocalMessages([]);
     }
-  }, [dbMessages, conversationId]);
+  }, [formattedDbMessages, conversationId]);
 
   // Send message mutation with optimistic updates
   // Function to add user message instantly to UI
