@@ -72,10 +72,17 @@ export default function ComparisonView() {
   };
 
   const modelOptions = [
-    { value: "gpt-4o", label: "GPT-4 (OpenAI)" },
-    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-    { value: "gemini-2.5-pro", label: "Gemini Pro" },
-    { value: "gemini-2.5-flash", label: "Gemini Flash" },
+    { value: "gpt-4o", label: "GPT-4o (OpenAI)" },
+    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo (OpenAI)" },
+    { value: "gemini-2.5-pro", label: "Gemini Pro (Google)" },
+    { value: "gemini-2.5-flash", label: "Gemini Flash (Google)" },
+    { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet (Anthropic)" },
+    { value: "claude-3-opus", label: "Claude 3 Opus (Anthropic)" },
+    { value: "claude-3-haiku", label: "Claude 3 Haiku (Anthropic)" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
+    { value: "llama-3-70b", label: "Llama 3 70B (Meta)" },
+    { value: "mixtral-8x7b", label: "Mixtral 8x7B (Mistral)" },
+    { value: "deepseek-r1t2-chimera", label: "DeepSeek R1T2 Chimera (TNG Tech)" },
   ];
 
   return (

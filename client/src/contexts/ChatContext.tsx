@@ -77,7 +77,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       console.log("Clearing active voice profile");
       setActiveVoiceProfile(null);
     }
-  }, [voiceProfiles, activeVoiceProfile]);
+  }, [voiceProfiles]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {

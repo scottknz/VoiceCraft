@@ -249,3 +249,11 @@ Changelog:
   - Recreated voice profiles, conversations, messages, and embeddings tables with proper relationships
   - Authentication system now fully functional with successful user registration and login
   - Application ready for independent deployment without external authentication dependencies
+- July 08, 2025. **AI USER SESSION ENDPOINT**: Created dedicated DeepSeek AI session endpoint
+  - Implemented /api/ai-session endpoint using tngtech/deepseek-r1t2-chimera:free model via OpenRouter
+  - Added authentication middleware and comprehensive error handling
+  - Built interactive demo page with real-time messaging and session history tracking
+  - Integrated navigation link in main interface for easy access to AI session testing
+  - Added DeepSeek model to dropdown menu in both chat interface and comparison view
+  - Fixed React infinite loop warning in ChatContext by removing unnecessary dependency
+  - All AI models now available in dropdown: OpenAI, Google, Anthropic, Meta, Mistral, TNG Tech models
