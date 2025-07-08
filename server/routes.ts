@@ -262,11 +262,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Background user message save failed:", error);
       });
 
-      // Get conversation history in parallel with voice profile loading
-      const [conversationMessages, voiceProfile] = await Promise.all([
+      // Get conversation history and active voice profile from database
+      const [conversationMessages, activeVoiceProfile] = await Promise.all([
         storage.getConversationMessages(conversationId),
-        voiceProfileId ? storage.getVoiceProfile(voiceProfileId) : Promise.resolve(null)
+        storage.getActiveVoiceProfile(userId)
       ]);
+      
+      // Use active voice profile from database, not from client request
+      const voiceProfile = activeVoiceProfile;
       
       // Build messages array from conversation history (now includes the new user message)
       const messages = conversationMessages.map(msg => ({

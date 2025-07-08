@@ -55,6 +55,7 @@ export interface IStorage {
   updateVoiceProfile(id: number, profile: Partial<InsertVoiceProfile>): Promise<VoiceProfile>;
   deleteVoiceProfile(id: number): Promise<void>;
   getVoiceProfile(id: number): Promise<VoiceProfile | undefined>;
+  getActiveVoiceProfile(userId: number): Promise<VoiceProfile | undefined>;
   setActiveVoiceProfile(userId: number, profileId: number): Promise<void>;
 
   // Writing sample operations
@@ -238,6 +239,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(voiceProfiles)
       .where(eq(voiceProfiles.id, id));
+    return profile;
+  }
+
+  async getActiveVoiceProfile(userId: number): Promise<VoiceProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(voiceProfiles)
+      .where(and(eq(voiceProfiles.userId, userId), eq(voiceProfiles.isActive, true)));
     return profile;
   }
 
