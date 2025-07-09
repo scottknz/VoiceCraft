@@ -311,6 +311,31 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
     }
   };
 
+  const deleteStructureTemplate = async (templateId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/structure-templates/${templateId}`);
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/structure-templates"] });
+      
+      // Clear selection if deleted template was selected
+      if (selectedStructureTemplate?.id === templateId) {
+        setSelectedStructureTemplate(null);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Structure template deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting structure template:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete structure template",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     console.log("Form submitted with data:", data);
     console.log("Uploaded files:", uploadedFiles);
@@ -609,19 +634,34 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                               <Label className="text-xs font-medium text-muted-foreground">Your Saved Templates</Label>
                               <div className="grid grid-cols-2 gap-2">
                                 {structureTemplates.user.map((template) => (
-                                  <Button
-                                    key={template.id}
-                                    type="button"
-                                    variant={selectedStructureTemplate?.id === template.id ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => handleStructureTemplateSelect(template)}
-                                    className="text-left justify-start h-auto p-3"
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      <Save className="h-4 w-4 flex-shrink-0" />
-                                      <span className="text-sm font-medium">{template.name}</span>
-                                    </div>
-                                  </Button>
+                                  <div key={template.id} className="relative group">
+                                    <Button
+                                      type="button"
+                                      variant={selectedStructureTemplate?.id === template.id ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => handleStructureTemplateSelect(template)}
+                                      className="text-left justify-start h-auto p-3 w-full"
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        <Save className="h-4 w-4 flex-shrink-0" />
+                                        <span className="text-sm font-medium truncate">{template.name}</span>
+                                      </div>
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`Are you sure you want to delete "${template.name}"?`)) {
+                                          deleteStructureTemplate(template.id);
+                                        }
+                                      }}
+                                      className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full bg-red-500 text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 ))}
                               </div>
                             </div>
@@ -668,13 +708,95 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>How should content be organized and flow?</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="e.g., Start with main point then details, Use chronological order, Build up to conclusion, Include executive summary..."
-                              rows={6}
-                              {...field} 
-                            />
-                          </FormControl>
+                          <div className="space-y-2">
+                            {/* Formatting Toolbar */}
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                              <Label className="text-xs font-medium">HTML Formatting:</Label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentValue = field.value || "";
+                                  field.onChange(currentValue + "<strong>bold text</strong>");
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                <strong>B</strong>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentValue = field.value || "";
+                                  field.onChange(currentValue + "<em>italic text</em>");
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                <em>I</em>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentValue = field.value || "";
+                                  field.onChange(currentValue + "\n\n<ul>\n  <li>Bullet point 1</li>\n  <li>Bullet point 2</li>\n</ul>\n\n");
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                • List
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentValue = field.value || "";
+                                  field.onChange(currentValue + "\n\n<p>New paragraph</p>\n\n");
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                ¶
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentValue = field.value || "";
+                                  field.onChange(currentValue + " 😊 ");
+                                }}
+                                className="h-7 px-2 text-xs"
+                              >
+                                😊
+                              </Button>
+                            </div>
+                            
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Use HTML formatting for rich text:
+<strong>Bold text</strong>
+<em>Italic text</em>
+<p>Paragraphs with proper spacing</p>
+
+<ul>
+  <li>Bullet points</li>
+  <li>Multiple items</li>
+</ul>
+
+Add emojis 😊 and line breaks for better readability..."
+                                rows={8}
+                                {...field} 
+                                className="font-mono text-sm"
+                              />
+                            </FormControl>
+                            
+                            <div className="text-xs text-muted-foreground">
+                              <strong>Tip:</strong> You can use HTML tags like &lt;strong&gt;, &lt;em&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;br&gt; and emojis for rich formatting. This content can be copied and pasted as HTML.
+                            </div>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}

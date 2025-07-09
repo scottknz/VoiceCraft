@@ -51,21 +51,21 @@ export const defaultStructureTemplates: StructureTemplateData[] = [
     name: "Custom Structure",
     description: "A flexible template that allows users to define their own custom structure and formatting preferences. Perfect for unique communication needs that don't fit standard templates.",
     templateType: "custom",
-    example: "**Main Topic**\n\nIntroductory paragraph that sets the context and engages the reader.\n\n**Key Points:**\n- First important point with supporting details\n- Second key insight with examples\n- Third critical element with actionable information\n\n**Conclusion**\n\nSummary that reinforces the main message and provides clear next steps or takeaways for the reader.",
+    example: "<p><strong>Main Topic</strong> 🎯</p>\n\n<p>Introductory paragraph that sets the context and engages the reader.</p>\n\n<p><strong>Key Points:</strong></p>\n<ul>\n  <li>First important point with supporting details</li>\n  <li>Second key insight with examples</li>\n  <li>Third critical element with actionable information</li>\n</ul>\n\n<p><strong>Conclusion</strong></p>\n\n<p>Summary that reinforces the main message and provides clear next steps or takeaways for the reader. ✨</p>",
     isDefault: true
   },
   {
     name: "Email",
     description: "Professional email structure with clear subject line, greeting, body paragraphs with main points, and appropriate closing. Optimized for business communication with concise, actionable content.",
     templateType: "email",
-    example: "**Subject:** Quarterly Review Meeting - Action Items Required\n\nHi Sarah,\n\nI hope this email finds you well. I wanted to follow up on yesterday's quarterly review meeting and share the key action items we discussed.\n\n**Immediate Actions:**\n- Complete budget analysis by Friday, March 15th\n- Schedule team meetings for project timeline review\n- Submit final recommendations to leadership by March 20th\n\nPlease let me know if you need any additional resources or have questions about these deliverables.\n\nBest regards,\nMike Johnson\nProject Manager",
+    example: "<p><strong>Subject:</strong> Quarterly Review Meeting - Action Items Required 📋</p>\n\n<p>Hi Sarah,</p>\n\n<p>I hope this email finds you well. I wanted to follow up on yesterday's quarterly review meeting and share the key action items we discussed.</p>\n\n<p><strong>Immediate Actions:</strong></p>\n<ul>\n  <li>Complete budget analysis by Friday, March 15th 📊</li>\n  <li>Schedule team meetings for project timeline review 📅</li>\n  <li>Submit final recommendations to leadership by March 20th 📄</li>\n</ul>\n\n<p>Please let me know if you need any additional resources or have questions about these deliverables.</p>\n\n<p><strong>Best regards,</strong><br>\nMike Johnson<br>\n<em>Project Manager</em></p>",
     isDefault: true
   },
   {
     name: "LinkedIn Post",
     description: "Engaging social media post structure designed for LinkedIn. Includes attention-grabbing opening, valuable insights or personal experience, and call-to-action. Optimized for professional networking and engagement.",
     templateType: "linkedin_post",
-    example: "🚀 Just completed an incredible project that taught me the power of collaborative leadership.\n\nOver the past 6 months, our team transformed a struggling department into our company's top performer. Here's what made the difference:\n\n✓ **Transparent Communication** - Weekly all-hands meetings kept everyone aligned\n✓ **Individual Growth Plans** - Each team member had personalized development goals\n✓ **Celebrating Small Wins** - Monthly recognition boosted morale significantly\n\nThe result? 40% increase in productivity and 95% team satisfaction score.\n\n💡 What leadership strategies have worked best for your team? Share your experiences below!\n\n#Leadership #TeamManagement #ProfessionalGrowth",
+    example: "<p>🚀 Just completed an incredible project that taught me the power of collaborative leadership.</p>\n\n<p>Over the past 6 months, our team transformed a struggling department into our company's top performer. Here's what made the difference:</p>\n\n<ul>\n  <li>✓ <strong>Transparent Communication</strong> - Weekly all-hands meetings kept everyone aligned</li>\n  <li>✓ <strong>Individual Growth Plans</strong> - Each team member had personalized development goals</li>\n  <li>✓ <strong>Celebrating Small Wins</strong> - Monthly recognition boosted morale significantly</li>\n</ul>\n\n<p>The result? <strong>40% increase in productivity</strong> and <strong>95% team satisfaction score</strong>. 📈</p>\n\n<p>💡 What leadership strategies have worked best for your team? Share your experiences below!</p>\n\n<p><em>#Leadership #TeamManagement #ProfessionalGrowth</em></p>",
     isDefault: true
   },
   {
