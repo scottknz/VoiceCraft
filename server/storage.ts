@@ -7,6 +7,7 @@ import {
   embeddings,
   conversations,
   messages,
+  structureTemplates,
   type User,
   type UpsertUser,
   type UserSession,
@@ -23,6 +24,8 @@ import {
   type InsertConversation,
   type Message,
   type InsertMessage,
+  type StructureTemplate,
+  type InsertStructureTemplate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count } from "drizzle-orm";
@@ -79,6 +82,15 @@ export interface IStorage {
   getConversationMessages(conversationId: number): Promise<Message[]>;
   addMessage(message: InsertMessage): Promise<Message>;
   updateMessage(id: number, message: Partial<InsertMessage>): Promise<Message>;
+
+  // Structure template operations
+  getStructureTemplates(userId?: number): Promise<StructureTemplate[]>;
+  getDefaultStructureTemplates(): Promise<StructureTemplate[]>;
+  getUserStructureTemplates(userId: number): Promise<StructureTemplate[]>;
+  createStructureTemplate(template: InsertStructureTemplate): Promise<StructureTemplate>;
+  updateStructureTemplate(id: number, template: Partial<InsertStructureTemplate>): Promise<StructureTemplate>;
+  deleteStructureTemplate(id: number): Promise<void>;
+  getStructureTemplate(id: number): Promise<StructureTemplate | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -393,6 +405,77 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messages.id, id))
       .returning();
     return updatedMessage;
+  }
+
+  // Structure template operations
+  async getStructureTemplates(userId?: number): Promise<StructureTemplate[]> {
+    if (userId) {
+      // Get both default templates and user's custom templates
+      return await db
+        .select()
+        .from(structureTemplates)
+        .where(
+          eq(structureTemplates.isDefault, true)
+        )
+        .orderBy(structureTemplates.createdAt);
+    } else {
+      // Get all default templates
+      return await db
+        .select()
+        .from(structureTemplates)
+        .where(eq(structureTemplates.isDefault, true))
+        .orderBy(structureTemplates.createdAt);
+    }
+  }
+
+  async getDefaultStructureTemplates(): Promise<StructureTemplate[]> {
+    return await db
+      .select()
+      .from(structureTemplates)
+      .where(eq(structureTemplates.isDefault, true))
+      .orderBy(structureTemplates.createdAt);
+  }
+
+  async getUserStructureTemplates(userId: number): Promise<StructureTemplate[]> {
+    return await db
+      .select()
+      .from(structureTemplates)
+      .where(
+        and(
+          eq(structureTemplates.userId, userId),
+          eq(structureTemplates.isDefault, false)
+        )
+      )
+      .orderBy(desc(structureTemplates.createdAt));
+  }
+
+  async createStructureTemplate(template: InsertStructureTemplate): Promise<StructureTemplate> {
+    const [newTemplate] = await db
+      .insert(structureTemplates)
+      .values(template)
+      .returning();
+    return newTemplate;
+  }
+
+  async updateStructureTemplate(id: number, template: Partial<InsertStructureTemplate>): Promise<StructureTemplate> {
+    const [updatedTemplate] = await db
+      .update(structureTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(structureTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteStructureTemplate(id: number): Promise<void> {
+    await db.delete(structureTemplates).where(eq(structureTemplates.id, id));
+  }
+
+  async getStructureTemplate(id: number): Promise<StructureTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(structureTemplates)
+      .where(eq(structureTemplates.id, id));
+    return template;
   }
 }
 

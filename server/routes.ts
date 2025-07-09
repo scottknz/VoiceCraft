@@ -6,7 +6,8 @@ import {
   insertVoiceProfileSchema, 
   insertWritingSampleSchema, 
   insertConversationSchema, 
-  insertMessageSchema 
+  insertMessageSchema,
+  insertStructureTemplateSchema 
 } from "@shared/schema";
 import { createChatStream, createChatResponse } from "./services/chat";
 import { z } from "zod";
@@ -359,6 +360,83 @@ Respond with only the title, no quotes or additional text.`;
       if (!res.headersSent) {
         res.status(500).json({ message: "Failed to process streaming chat request" });
       }
+    }
+  });
+
+  // Structure template routes
+  app.get("/api/structure-templates", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const defaultTemplates = await storage.getDefaultStructureTemplates();
+      const userTemplates = await storage.getUserStructureTemplates(userId);
+      
+      res.json({
+        default: defaultTemplates,
+        user: userTemplates
+      });
+    } catch (error) {
+      console.error("Error fetching structure templates:", error);
+      res.status(500).json({ message: "Failed to fetch structure templates" });
+    }
+  });
+
+  app.post("/api/structure-templates", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      const result = insertStructureTemplateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid structure template data", errors: result.error.errors });
+      }
+
+      const templateData = { ...result.data, userId, isDefault: false };
+      const template = await storage.createStructureTemplate(templateData);
+      
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Error creating structure template:", error);
+      res.status(500).json({ message: "Failed to create structure template" });
+    }
+  });
+
+  app.patch("/api/structure-templates/:id", requireAuth, async (req: any, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      
+      const existingTemplate = await storage.getStructureTemplate(templateId);
+      if (!existingTemplate || existingTemplate.userId !== userId) {
+        return res.status(404).json({ message: "Structure template not found or access denied" });
+      }
+
+      const result = insertStructureTemplateSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid structure template data", errors: result.error.errors });
+      }
+
+      const updatedTemplate = await storage.updateStructureTemplate(templateId, result.data);
+      res.json(updatedTemplate);
+    } catch (error) {
+      console.error("Error updating structure template:", error);
+      res.status(500).json({ message: "Failed to update structure template" });
+    }
+  });
+
+  app.delete("/api/structure-templates/:id", requireAuth, async (req: any, res) => {
+    try {
+      const templateId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      
+      const existingTemplate = await storage.getStructureTemplate(templateId);
+      if (!existingTemplate || existingTemplate.userId !== userId) {
+        return res.status(404).json({ message: "Structure template not found or access denied" });
+      }
+
+      await storage.deleteStructureTemplate(templateId);
+      res.json({ message: "Structure template deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting structure template:", error);
+      res.status(500).json({ message: "Failed to delete structure template" });
     }
   });
 

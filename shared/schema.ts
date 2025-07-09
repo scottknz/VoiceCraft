@@ -143,12 +143,26 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Structure templates for voice profiles
+export const structureTemplates = pgTable("structure_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  example: text("example").notNull(),
+  isDefault: boolean("is_default").default(false),
+  templateType: varchar("template_type").notNull(), // "saved", "email", "linkedin_post", etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   voiceProfiles: many(voiceProfiles),
   conversations: many(conversations),
   sessions: many(userSessions),
   securityEvents: many(securityEvents),
+  structureTemplates: many(structureTemplates),
 }));
 
 export const userSessionsRelations = relations(userSessions, ({ one }) => ({
@@ -208,6 +222,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const structureTemplatesRelations = relations(structureTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [structureTemplates.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertVoiceProfileSchema = createInsertSchema(voiceProfiles).omit({
   id: true,
@@ -248,6 +269,12 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   createdAt: true,
 });
 
+export const insertStructureTemplateSchema = createInsertSchema(structureTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -265,3 +292,5 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type StructureTemplate = typeof structureTemplates.$inferSelect;
+export type InsertStructureTemplate = z.infer<typeof insertStructureTemplateSchema>;
