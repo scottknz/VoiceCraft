@@ -166,7 +166,7 @@ export default function ConversationList() {
               key={conversation.id}
               className={`group cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-gray-800 border-0 shadow-none ${
                 currentConversation?.id === conversation.id
-                  ? "bg-gray-100 dark:bg-gray-800"
+                  ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
                   : ""
               }`}
               onClick={() => handleConversationClick(conversation)}
@@ -178,36 +178,17 @@ export default function ConversationList() {
                       {conversation.title || `Conversation ${conversation.id}`}
                     </h4>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Badge 
-                      variant="secondary"
-                      className={`text-xs cursor-pointer transition-colors ${
-                        currentConversation?.id === conversation.id
-                          ? "!bg-green-500 hover:!bg-green-600 !text-white !border-green-500" 
-                          : "hover:bg-gray-200 dark:hover:bg-gray-600"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (currentConversation?.id !== conversation.id) {
-                          handleConversationClick(conversation);
-                        }
-                      }}
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                      onClick={(e) => handleDeleteConversation(conversation.id, e)}
+                      disabled={deleteConversationMutation.isPending}
+                      title="Delete conversation"
                     >
-                      {currentConversation?.id === conversation.id ? "Active" : "Inactive"}
-                    </Badge>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Regenerate title button removed for cleaner interface */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                        onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                        disabled={deleteConversationMutation.isPending}
-                        title="Delete conversation"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-500" />
-                      </Button>
-                    </div>
+                      <Trash2 className="h-3 w-3 text-red-500" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>

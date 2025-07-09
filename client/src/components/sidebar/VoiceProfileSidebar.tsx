@@ -251,17 +251,17 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                                   {getStructureInfo(profile.description).structureName}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                                <span className="flex items-center gap-1">
+                              <div className="flex flex-col items-end space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center space-x-1">
+                                  <span>{profile.samplesCount || 0}</span>
                                   <FileText className="h-3 w-3" />
-                                  {profile.samplesCount || 0}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {profile.createdAt
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <span>{profile.createdAt
                                     ? new Date(profile.createdAt).toLocaleDateString()
-                                    : "Unknown"}
-                                </span>
+                                    : "Unknown"}</span>
+                                  <Calendar className="h-3 w-3" />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -298,17 +298,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                           <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
                             {profile.name}
                           </h4>
-                          <Badge 
-                            variant="secondary"
-                            className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              activateProfileMutation.mutate(profile.id);
-                            }}
-                            title="Click to activate"
-                          >
-                            Inactive
-                          </Badge>
                         </div>
                       )}
                     </div>
