@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -73,6 +73,22 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
       }>;
     },
   });
+
+  // Initialize selected template when editing existing profile
+  useEffect(() => {
+    if (profile && structureTemplates && !selectedStructureTemplate) {
+      const description = profile.description || "";
+      const structureMatch = description.match(/Structure: (.+)/);
+      if (structureMatch) {
+        const structureName = structureMatch[1];
+        const allTemplates = [...(structureTemplates.default || []), ...(structureTemplates.user || [])];
+        const matchingTemplate = allTemplates.find(t => t.name === structureName);
+        if (matchingTemplate) {
+          setSelectedStructureTemplate(matchingTemplate);
+        }
+      }
+    }
+  }, [profile, structureTemplates, selectedStructureTemplate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
