@@ -327,7 +327,9 @@ async function createRouterStream(options: ChatOptions): Promise<{ stream: Reada
   });
 
   if (!response.ok) {
-    throw new Error(`Router API error: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`Router API error: ${response.status} - ${errorText}`);
+    throw new Error(`Router API error: ${response.status} - ${errorText}`);
   }
 
   let fullResponseText = '';
@@ -371,8 +373,15 @@ async function createRouterStream(options: ChatOptions): Promise<{ stream: Reada
             }
           }
         }
+        
+        // If we reach here without hitting [DONE], close the stream
+        controller.close();
+        fullResponsePromiseResolve(fullResponseText);
+        
       } catch (error) {
+        console.error("Router streaming error:", error);
         controller.error(error);
+        fullResponsePromiseResolve(fullResponseText || "Error occurred during streaming");
       } finally {
         reader.releaseLock();
       }

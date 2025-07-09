@@ -349,7 +349,9 @@ Respond with only the title, no quotes or additional text.`;
 
       } catch (streamError) {
         console.error("Streaming error:", streamError);
-        res.write(`data: ${JSON.stringify({ error: "Stream error" })}\n\n`);
+        // Send error message to client
+        res.write(`data: ${JSON.stringify({ error: "I apologize, but I encountered an error generating a response. Please try again." })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
       } finally {
         reader.releaseLock();
         res.end();

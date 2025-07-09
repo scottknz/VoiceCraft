@@ -230,11 +230,8 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                             </div>
                             
                             {/* Line 2: Description */}
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              <span className="font-medium">Description: </span>
-                              <span className="line-clamp-1">
-                                {getStructureInfo(profile.description).cleanDescription}
-                              </span>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
+                              {getStructureInfo(profile.description).cleanDescription}
                             </div>
                             
                             {/* Line 3: Type (Structure) with files/date on the right */}
