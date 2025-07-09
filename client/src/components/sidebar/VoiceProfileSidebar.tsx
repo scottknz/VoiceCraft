@@ -119,6 +119,20 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
     }
   };
 
+  // Helper function to extract structure template name and clean description
+  const getStructureInfo = (description: string | null) => {
+    if (!description) return { cleanDescription: "No description", structureName: "None" };
+    
+    const structureMatch = description.match(/Structure: (.+)/);
+    if (structureMatch) {
+      const structureName = structureMatch[1];
+      const cleanDescription = description.replace(/\nStructure: .+/, "").trim();
+      return { cleanDescription: cleanDescription || "No description", structureName };
+    }
+    
+    return { cleanDescription: description, structureName: "None" };
+  };
+
   // Removed refresh handler - no longer needed
 
   if (isLoading) {
@@ -204,39 +218,40 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                 >
                   <CardContent className={profile.isActive ? "p-4" : "p-2"}>
                     <div className="relative">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-medium text-sm truncate">
-                              {profile.name}
-                            </h4>
-                            {profile.isActive ? (
+                      {profile.isActive ? (
+                        // Active profile - full three-line layout
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            {/* Line 1: Title */}
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                Title: {profile.name}
+                              </h4>
                               <Badge 
                                 variant="secondary"
-                                className="bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-2 ml-2"
+                                className="bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-2 ml-2 flex-shrink-0"
                               >
                                 Active
                               </Badge>
-                            ) : (
-                              <Badge 
-                                variant="secondary"
-                                className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer ml-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  activateProfileMutation.mutate(profile.id);
-                                }}
-                                title="Click to activate"
-                              >
-                                Inactive
-                              </Badge>
-                            )}
-                          </div>
-                          {profile.isActive && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                              <p className="line-clamp-1">
-                                {profile.description || "No description"}
-                              </p>
-                              <div className="flex items-center gap-3">
+                            </div>
+                            
+                            {/* Line 2: Description */}
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              <span className="font-medium">Description: </span>
+                              <span className="line-clamp-1">
+                                {getStructureInfo(profile.description).cleanDescription}
+                              </span>
+                            </div>
+                            
+                            {/* Line 3: Type (Structure) with files/date on the right */}
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                <span className="font-medium">Type: </span>
+                                <span className="text-blue-600 dark:text-blue-400">
+                                  {getStructureInfo(profile.description).structureName}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
                                   <FileText className="h-3 w-3" />
                                   {profile.samplesCount || 0}
@@ -249,21 +264,10 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                                 </span>
                               </div>
                             </div>
-                          )}
-                        </div>
-                        
-                        {profile.isActive && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                              onClick={(e) => handleDeleteProfile(profile.id, e)}
-                              disabled={deleteProfileMutation.isPending}
-                              title="Delete profile"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-500" />
-                            </Button>
+                          </div>
+                          
+                          {/* Action buttons */}
+                          <div className="flex flex-col gap-1 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -274,11 +278,39 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                               }}
                               title="Edit profile"
                             >
-                              <MoreVertical className="h-3 w-3 text-gray-500" />
+                              <Settings className="h-3 w-3 text-gray-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
+                              onClick={(e) => handleDeleteProfile(profile.id, e)}
+                              disabled={deleteProfileMutation.isPending}
+                              title="Delete profile"
+                            >
+                              <Trash2 className="h-3 w-3 text-red-500" />
                             </Button>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        // Inactive profile - minimized single line
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
+                            {profile.name}
+                          </h4>
+                          <Badge 
+                            variant="secondary"
+                            className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 text-xs cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              activateProfileMutation.mutate(profile.id);
+                            }}
+                            title="Click to activate"
+                          >
+                            Inactive
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
