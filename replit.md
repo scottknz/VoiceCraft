@@ -263,3 +263,12 @@ Changelog:
     * Real-time streaming for AI responses with proper state synchronization
     * chatHistory state management prevents message loss or duplication
     * Server-first design with database persistence and refresh capabilities
+- July 09, 2025. **STRUCTURE TEMPLATE SYSTEM**: Implemented comprehensive structure template selection for voice profiles
+  - Created database schema with `structure_templates` table supporting both default and user-created templates
+  - Populated 8 predefined structure templates: Email, LinkedIn Post, LinkedIn Article, Resume, Personal Bio, Outreach Message, Custom Structure, Saved Structures
+  - Built complete API endpoints for CRUD operations: GET, POST, PATCH, DELETE for template management
+  - Integrated template selection into Voice Characteristics modal under "Structure" tab
+  - Added template preview with descriptions and example outputs for user guidance
+  - Implemented save custom structure functionality allowing users to create and name their own templates
+  - Structure templates automatically populate the structurePreferences field with formatted content
+  - Template system supports both standard predefined options and personalized user-created structures

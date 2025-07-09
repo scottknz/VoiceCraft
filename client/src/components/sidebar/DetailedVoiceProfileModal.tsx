@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -15,11 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Upload, FileText, AlertCircle } from "lucide-react";
+import { Plus, X, Upload, FileText, AlertCircle, BookOpen, Save } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { insertVoiceProfileSchema } from "@shared/schema";
-import type { VoiceProfile } from "@shared/schema";
+import type { VoiceProfile, StructureTemplate } from "@shared/schema";
 import { z } from "zod";
 
 interface DetailedVoiceProfileModalProps {
@@ -53,12 +53,26 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
   const queryClient = useQueryClient();
   const [customTone, setCustomTone] = useState("");
   const [customEthicalBoundary, setCustomEthicalBoundary] = useState("");
+  const [selectedStructureTemplate, setSelectedStructureTemplate] = useState<StructureTemplate | null>(null);
+  const [customStructureName, setCustomStructureName] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<Array<{
     name: string;
     content: string;
     type: string;
     size: number;
   }>>([]);
+
+  // Fetch structure templates
+  const { data: structureTemplates, isLoading: templatesLoading } = useQuery({
+    queryKey: ["/api/structure-templates"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/structure-templates");
+      return response.json() as Promise<{
+        default: StructureTemplate[];
+        user: StructureTemplate[];
+      }>;
+    },
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -212,6 +226,54 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
 
   const removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleStructureTemplateSelect = (template: StructureTemplate) => {
+    setSelectedStructureTemplate(template);
+    if (template.templateType === "custom") {
+      // For custom template, let user modify the structure preferences
+      form.setValue("structurePreferences", template.example);
+    } else {
+      // For predefined templates, use the example as the structure preference
+      form.setValue("structurePreferences", `${template.description}\n\nExample format:\n${template.example}`);
+    }
+  };
+
+  const saveCustomStructure = async () => {
+    if (!customStructureName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your custom structure",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const structureContent = form.getValues("structurePreferences");
+      await apiRequest("POST", "/api/structure-templates", {
+        name: customStructureName,
+        description: `Custom structure: ${customStructureName}`,
+        example: structureContent,
+        templateType: "custom",
+        isDefault: false,
+      });
+
+      toast({
+        title: "Success",
+        description: "Custom structure saved successfully",
+      });
+
+      setCustomStructureName("");
+      queryClient.invalidateQueries({ queryKey: ["/api/structure-templates"] });
+    } catch (error) {
+      console.error("Error saving custom structure:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save custom structure",
+        variant: "destructive",
+      });
+    }
   };
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
@@ -472,9 +534,99 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                   <TabsContent value="structure" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Structure</CardTitle>
+                    <CardTitle>Structure Templates</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    {templatesLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Choose a structure template:</Label>
+                          
+                          {/* Default Templates */}
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-muted-foreground">Standard Templates</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {structureTemplates?.default?.map((template) => (
+                                <Button
+                                  key={template.id}
+                                  type="button"
+                                  variant={selectedStructureTemplate?.id === template.id ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleStructureTemplateSelect(template)}
+                                  className="text-left justify-start h-auto p-3"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <BookOpen className="h-4 w-4 flex-shrink-0" />
+                                    <span className="text-sm font-medium">{template.name}</span>
+                                  </div>
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* User Templates */}
+                          {structureTemplates?.user && structureTemplates.user.length > 0 && (
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Your Saved Templates</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {structureTemplates.user.map((template) => (
+                                  <Button
+                                    key={template.id}
+                                    type="button"
+                                    variant={selectedStructureTemplate?.id === template.id ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => handleStructureTemplateSelect(template)}
+                                    className="text-left justify-start h-auto p-3"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <Save className="h-4 w-4 flex-shrink-0" />
+                                      <span className="text-sm font-medium">{template.name}</span>
+                                    </div>
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Selected Template Info */}
+                        {selectedStructureTemplate && (
+                          <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                            <CardContent className="p-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <BookOpen className="h-4 w-4 text-blue-600" />
+                                  <Label className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                    {selectedStructureTemplate.name}
+                                  </Label>
+                                </div>
+                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                  {selectedStructureTemplate.description}
+                                </p>
+                                <div className="mt-2">
+                                  <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">Example:</Label>
+                                  <div className="bg-white dark:bg-gray-900 rounded p-2 mt-1 text-xs font-mono text-gray-700 dark:text-gray-300 border">
+                                    {selectedStructureTemplate.example}
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Structure Preferences</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
                       name="structurePreferences"
@@ -484,7 +636,7 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                           <FormControl>
                             <Textarea 
                               placeholder="e.g., Start with main point then details, Use chronological order, Build up to conclusion, Include executive summary..."
-                              rows={4}
+                              rows={6}
                               {...field} 
                             />
                           </FormControl>
@@ -492,6 +644,26 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                         </FormItem>
                       )}
                     />
+
+                    {/* Save Custom Structure */}
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        placeholder="Enter name to save as custom structure"
+                        value={customStructureName}
+                        onChange={(e) => setCustomStructureName(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={saveCustomStructure}
+                        disabled={!customStructureName.trim() || !form.watch("structurePreferences")}
+                        size="sm"
+                        className="flex items-center space-x-1"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span>Save</span>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
                   </TabsContent>
