@@ -238,14 +238,14 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                             </div>
                             
                             {/* Line 3: Type (Structure) with files/date on the right */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-start justify-between">
                               <div className="text-xs text-gray-600 dark:text-gray-400">
                                 <span className="font-medium">Type: </span>
                                 <span className="text-blue-600 dark:text-blue-400">
                                   {getStructureInfo(profile.description).structureName}
                                 </span>
                               </div>
-                              <div className="flex flex-col items-end space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex flex-col items-end space-y-1 text-xs text-gray-500 dark:text-gray-400 ml-4">
                                 <div className="flex items-center space-x-1">
                                   <span>{profile.samplesCount || 0}</span>
                                   <FileText className="h-3 w-3" />
