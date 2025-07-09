@@ -227,12 +227,6 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
                               <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
                                 Title: {profile.name}
                               </h4>
-                              <Badge 
-                                variant="secondary"
-                                className="bg-green-500 hover:bg-green-600 text-white border-green-500 text-xs px-2 ml-2 flex-shrink-0"
-                              >
-                                Active
-                              </Badge>
                             </div>
                             
                             {/* Line 2: Description */}
