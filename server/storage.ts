@@ -54,7 +54,7 @@ export interface IStorage {
 
   // Voice profile operations
   getUserVoiceProfiles(userId: number): Promise<VoiceProfile[]>;
-  createVoiceProfile(profile: InsertVoiceProfile): Promise<VoiceProfile>;
+  createVoiceProfile(profile: InsertVoiceProfile & { userId: number }): Promise<VoiceProfile>;
   updateVoiceProfile(id: number, profile: Partial<InsertVoiceProfile>): Promise<VoiceProfile>;
   deleteVoiceProfile(id: number): Promise<void>;
   getVoiceProfile(id: number): Promise<VoiceProfile | undefined>;
@@ -95,8 +95,8 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User operations
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, parseInt(id)));
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
@@ -198,7 +198,7 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
-  async getUserSecurityEvents(userId: string, limit = 50): Promise<SecurityEvent[]> {
+  async getUserSecurityEvents(userId: number, limit = 50): Promise<SecurityEvent[]> {
     return await db
       .select()
       .from(securityEvents)
@@ -225,7 +225,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(voiceProfiles.updatedAt));
   }
 
-  async createVoiceProfile(profile: InsertVoiceProfile): Promise<VoiceProfile> {
+  async createVoiceProfile(profile: InsertVoiceProfile & { userId: number }): Promise<VoiceProfile> {
     const [newProfile] = await db
       .insert(voiceProfiles)
       .values(profile)
