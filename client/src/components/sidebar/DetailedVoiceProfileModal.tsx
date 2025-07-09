@@ -230,6 +230,25 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
 
   const handleStructureTemplateSelect = (template: StructureTemplate) => {
     setSelectedStructureTemplate(template);
+    
+    // Update the description field with the selected template name
+    const currentDescription = form.getValues("description") || "";
+    const structurePrefix = "Structure: ";
+    
+    // Remove existing structure info from description
+    const descriptionWithoutStructure = currentDescription
+      .split('\n')
+      .filter(line => !line.startsWith(structurePrefix))
+      .join('\n')
+      .trim();
+    
+    // Add new structure template name to description
+    const newDescription = descriptionWithoutStructure 
+      ? `${descriptionWithoutStructure}\n${structurePrefix}${template.name}`
+      : `${structurePrefix}${template.name}`;
+    
+    form.setValue("description", newDescription);
+    
     if (template.templateType === "custom") {
       // For custom template, let user modify the structure preferences
       form.setValue("structurePreferences", template.example);

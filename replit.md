@@ -272,3 +272,5 @@ Changelog:
   - Implemented save custom structure functionality allowing users to create and name their own templates
   - Structure templates automatically populate the structurePreferences field with formatted content
   - Template system supports both standard predefined options and personalized user-created structures
+  - Selected structure template name automatically saves to voice profile description field (format: "Structure: [Template Name]")
+  - Template selection updates both structure preferences and visible profile description for easy identification
