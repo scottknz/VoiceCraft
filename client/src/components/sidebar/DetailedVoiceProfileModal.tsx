@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Upload, FileText, AlertCircle, BookOpen, Save } from "lucide-react";
+import { Plus, X, Upload, FileText, AlertCircle, BookOpen, Save, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { insertVoiceProfileSchema } from "@shared/schema";
@@ -657,9 +657,9 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                                           deleteStructureTemplate(template.id);
                                         }
                                       }}
-                                      className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full bg-red-500 text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
-                                      <X className="h-3 w-3" />
+                                      <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 ))}
