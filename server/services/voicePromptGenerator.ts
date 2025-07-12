@@ -1,10 +1,11 @@
-import type { VoiceProfile } from "@shared/schema";
+import type { VoiceProfile, WritingSample, Embedding } from "@shared/schema";
+import { storage } from "../storage";
 
 /**
  * Generates optimized system prompts based on voice profile data
  * Designed to maximize AI adherence to voice profile characteristics
  */
-export function generateVoiceSystemPrompt(voiceProfile: VoiceProfile): string {
+export async function generateVoiceSystemPrompt(voiceProfile: VoiceProfile): Promise<string> {
   const sections: string[] = [];
 
   // Core identity
@@ -140,6 +141,17 @@ export function generateVoiceSystemPrompt(voiceProfile: VoiceProfile): string {
     sections.push(`ETHICAL BOUNDARIES: Strictly respect these limits - ${voiceProfile.ethicalBoundaries.join(', ')}`);
   }
 
+  // Get writing samples for style analysis
+  try {
+    const writingSamples = await storage.getVoiceProfileSamples(voiceProfile.id);
+    if (writingSamples.length > 0) {
+      const sampleAnalysis = analyzeWritingSamples(writingSamples);
+      sections.push(`WRITING STYLE ANALYSIS: Based on ${writingSamples.length} uploaded samples - ${sampleAnalysis}`);
+    }
+  } catch (error) {
+    console.error('Error fetching writing samples:', error);
+  }
+
   // Final enforcement
   sections.push(`CRITICAL INSTRUCTION: You must consistently apply ALL these guidelines in every response. This is your core communication identity - never deviate from these characteristics.`);
 
@@ -242,4 +254,91 @@ export function generateNaturalVoicePrompt(voiceProfile: VoiceProfile): string {
   prompt += "Maintain this voice consistently throughout our conversation.";
 
   return prompt;
+}
+
+/**
+ * Analyzes writing samples to extract style characteristics
+ */
+function analyzeWritingSamples(writingSamples: WritingSample[]): string {
+  const characteristics: string[] = [];
+  
+  // Analyze collective samples for patterns
+  const totalContent = writingSamples.map(s => s.content).join('\n\n');
+  const totalLength = totalContent.length;
+  const totalWords = totalContent.split(/\s+/).length;
+  
+  // Sentence length analysis
+  const sentences = totalContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const avgSentenceLength = sentences.length > 0 ? totalWords / sentences.length : 0;
+  
+  if (avgSentenceLength < 10) {
+    characteristics.push("uses short, punchy sentences");
+  } else if (avgSentenceLength > 20) {
+    characteristics.push("writes in long, complex sentences");
+  } else {
+    characteristics.push("uses balanced sentence lengths");
+  }
+  
+  // Punctuation analysis
+  const exclamationCount = (totalContent.match(/!/g) || []).length;
+  const questionCount = (totalContent.match(/\?/g) || []).length;
+  const dashCount = (totalContent.match(/—|--/g) || []).length;
+  
+  if (exclamationCount > totalWords / 100) {
+    characteristics.push("uses exclamation points frequently for emphasis");
+  }
+  
+  if (questionCount > totalWords / 150) {
+    characteristics.push("engages readers with questions");
+  }
+  
+  if (dashCount > totalWords / 200) {
+    characteristics.push("uses dashes for emphasis and breaks");
+  }
+  
+  // Formatting analysis
+  const boldCount = (totalContent.match(/\*\*[^*]+\*\*/g) || []).length;
+  const listCount = (totalContent.match(/^[\s]*[-*•]\s/gm) || []).length;
+  const numberListCount = (totalContent.match(/^\d+\.\s/gm) || []).length;
+  
+  if (boldCount > 0) {
+    characteristics.push("uses bold text for emphasis");
+  }
+  
+  if (listCount > 0 || numberListCount > 0) {
+    characteristics.push("structures information with lists and bullet points");
+  }
+  
+  // Vocabulary analysis
+  const capitalizedWords = (totalContent.match(/\b[A-Z][A-Z]+\b/g) || []).length;
+  if (capitalizedWords > totalWords / 100) {
+    characteristics.push("uses capitalized words for emphasis");
+  }
+  
+  // Paragraph structure
+  const paragraphs = totalContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+  const avgParagraphLength = paragraphs.length > 0 ? totalWords / paragraphs.length : 0;
+  
+  if (avgParagraphLength < 30) {
+    characteristics.push("writes in short, concise paragraphs");
+  } else if (avgParagraphLength > 100) {
+    characteristics.push("writes in long, detailed paragraphs");
+  }
+  
+  // Tone indicators
+  const professionalWords = ['however', 'therefore', 'furthermore', 'consequently', 'nevertheless'].filter(word => 
+    totalContent.toLowerCase().includes(word)
+  ).length;
+  
+  const casualWords = ['yeah', 'gonna', 'wanna', 'kinda', 'sorta', 'hey', 'cool', 'awesome'].filter(word => 
+    totalContent.toLowerCase().includes(word)
+  ).length;
+  
+  if (professionalWords > casualWords) {
+    characteristics.push("maintains professional vocabulary");
+  } else if (casualWords > professionalWords) {
+    characteristics.push("uses casual, conversational language");
+  }
+  
+  return characteristics.length > 0 ? characteristics.join(', ') : "maintains consistent writing style across samples";
 }

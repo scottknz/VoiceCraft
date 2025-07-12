@@ -28,9 +28,10 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
     const enhancedOptions = { ...options };
     
     if (options.voiceProfile) {
-      const voicePrompt = generateNaturalVoicePrompt(options.voiceProfile);
+      const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
+      const voicePrompt = await generateVoiceSystemPrompt(options.voiceProfile);
       const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
-      enhancedOptions.systemInstruction = `${baseInstruction}\n\nVOICE PROFILE INSTRUCTIONS:\n${voicePrompt}`;
+      enhancedOptions.systemInstruction = `${baseInstruction}\n\n${voicePrompt}`;
       
       console.log("=== VOICE PROFILE APPLIED ===");
       console.log("Profile Name:", options.voiceProfile.name);
@@ -66,7 +67,7 @@ async function createGeminiResponse(options: ChatOptions): Promise<string> {
   let voiceInstructions = "";
   if (options.voiceProfile) {
     const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
-    voiceInstructions = generateVoiceSystemPrompt(options.voiceProfile);
+    voiceInstructions = await generateVoiceSystemPrompt(options.voiceProfile);
     console.log("Generated voice instructions:", voiceInstructions);
   }
   
@@ -178,9 +179,10 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
     const enhancedOptions = { ...options };
     
     if (options.voiceProfile) {
-      const voicePrompt = generateNaturalVoicePrompt(options.voiceProfile);
+      const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
+      const voicePrompt = await generateVoiceSystemPrompt(options.voiceProfile);
       const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
-      enhancedOptions.systemInstruction = `${baseInstruction}\n\nVOICE PROFILE INSTRUCTIONS:\n${voicePrompt}`;
+      enhancedOptions.systemInstruction = `${baseInstruction}\n\n${voicePrompt}`;
       
       console.log("=== STREAMING VOICE PROFILE APPLIED ===");
       console.log("Profile Name:", options.voiceProfile.name);

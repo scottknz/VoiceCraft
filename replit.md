@@ -327,3 +327,13 @@ Changelog:
   - **Form validation**: Dual schema approach - numeric values in form, text values in database
   - **Conversion logic**: Automatic conversion between radio button indices and descriptive text storage
   - **Enhanced AI instructions**: More specific formatting guidance based on text descriptions
+- July 12, 2025. **COMPREHENSIVE VOICE PROMPT GENERATOR**: Enhanced voice profile system with complete information integration
+  - **Comprehensive voice analysis**: Updated voice prompt generator to include ALL voice profile information
+  - **Writing sample analysis**: Automatically analyzes uploaded writing samples for style characteristics
+  - **Advanced style detection**: Extracts sentence length, punctuation patterns, formatting preferences, vocabulary style
+  - **Detailed prompt generation**: Creates comprehensive AI instructions including personality, formatting, tone, and writing style
+  - **Complete voice profile integration**: System instructions now include purpose, tone, structure, formatting, personality, ethics, and sample analysis
+  - **Async function support**: Updated chat system to handle comprehensive voice prompt generation asynchronously
+  - **Enhanced AI guidance**: AI models now receive detailed, specific instructions about user's complete voice profile
+  - **Writing pattern recognition**: Analyzes bold text usage, list preferences, sentence structure, professional vs casual tone
+  - **Full voice profile utilization**: Every aspect of voice profile now contributes to AI response generation
