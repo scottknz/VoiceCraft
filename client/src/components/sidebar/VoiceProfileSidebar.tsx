@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DetailedVoiceProfileModal from "./DetailedVoiceProfileModal";
 import ConversationList from "./ConversationList";
+import TemplateSection from "./TemplateSection";
 import { Plus, FileText, Calendar, MoreVertical, User, Settings, X, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -301,6 +302,13 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
               ))
             )}
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Templates Section */}
+        <div className="py-4">
+          <TemplateSection className="px-4" />
         </div>
 
         <Separator />

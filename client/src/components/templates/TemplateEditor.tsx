@@ -127,7 +127,12 @@ export default function TemplateEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable the default list extensions from StarterKit to avoid duplicates
+        bulletList: false,
+        orderedList: false,
+        listItem: false,
+      }),
       TextStyle,
       Color,
       TextAlign.configure({

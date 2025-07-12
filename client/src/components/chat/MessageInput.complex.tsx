@@ -20,6 +20,7 @@ export default function MessageInput() {
     activeVoiceProfile,
     currentConversation,
     createNewConversation,
+    selectedTemplate,
   } = useChatContext();
 
   const { sendMessage, addUserMessageToUI, stopStreaming, isSending, isStreaming } = useChat(
@@ -109,12 +110,19 @@ export default function MessageInput() {
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-      {activeVoiceProfile && (
-        <div className="mb-2 flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">
-            Voice: {activeVoiceProfile.name}
-          </Badge>
-          {activeVoiceProfile.description && (
+      {(activeVoiceProfile || selectedTemplate) && (
+        <div className="mb-2 flex items-center gap-2 flex-wrap">
+          {activeVoiceProfile && (
+            <Badge variant="secondary" className="text-xs">
+              Voice: {activeVoiceProfile.name}
+            </Badge>
+          )}
+          {selectedTemplate && (
+            <Badge variant="outline" className="text-xs">
+              Template: {selectedTemplate.name}
+            </Badge>
+          )}
+          {activeVoiceProfile?.description && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {activeVoiceProfile.description}
             </span>

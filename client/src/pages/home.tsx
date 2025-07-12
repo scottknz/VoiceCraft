@@ -5,7 +5,7 @@ import ChatInterface from "@/components/chat/ChatInterface";
 import { Button } from "@/components/ui/button";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { Link } from "wouter";
-import { Moon, Sun, Menu, LogOut, FileText, User, Sparkles } from "lucide-react";
+import { Moon, Sun, Menu, LogOut, FileText, User } from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
@@ -48,14 +48,6 @@ export default function Home() {
               </div>
               
               <div className="flex items-center gap-2">
-                {/* Templates */}
-                <Link href="/templates">
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Templates
-                  </Button>
-                </Link>
-                
                 {/* Profile */}
                 <Link href="/profile">
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
