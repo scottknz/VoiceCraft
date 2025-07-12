@@ -246,6 +246,11 @@ export const insertVoiceProfileSchema = createInsertSchema(voiceProfiles).omit({
   moralTone: z.string().nullable().optional(),
   preferredStance: z.string().nullable().optional(),
   humourLevel: z.string().nullable().optional(),
+  // Formatting fields as text
+  boldUsage: z.string().nullable().optional(),
+  lineSpacing: z.string().nullable().optional(),
+  emojiUsage: z.string().nullable().optional(),
+  listVsParagraphs: z.string().nullable().optional(),
 });
 
 export const insertWritingSampleSchema = createInsertSchema(writingSamples).omit({

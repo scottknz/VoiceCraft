@@ -70,6 +70,11 @@ const formSchema = insertVoiceProfileSchema.omit({
   userId: true,
 }).extend({
   name: z.string().min(1, "Name is required"),
+  // Override formatting fields to accept numeric values in the form
+  boldUsage: z.number().int().min(0).max(4).optional(),
+  lineSpacing: z.number().int().min(0).max(4).optional(),
+  emojiUsage: z.number().int().min(0).max(4).optional(),
+  listVsParagraphs: z.number().int().min(0).max(4).optional(),
 });
 
 export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: DetailedVoiceProfileModalProps) {

@@ -317,3 +317,13 @@ Changelog:
   - **Voice profile integration**: Update button uses active voice profile for context
   - **Template management**: Load existing templates, edit content, save updates
   - **Enhanced workflow**: Select template → Auto-generate example → Edit → Update description → Save
+- July 12, 2025. **FORMATTING RADIO BUTTON SYSTEM**: Redesigned voice profile formatting with text-based storage
+  - **Radio button interface**: Replaced sliders with 6x5 grid layout (4 formatting questions × 5 levels)
+  - **Formatting questions**: Bold text, Line spacing, Emojis, Lists & Bullets
+  - **Five levels**: Never, Sparingly, Sometimes, Often, As much as possible
+  - **Text storage format**: Database now stores descriptive text like "Never use bold text" instead of numeric values
+  - **Schema migration**: Updated voice_profiles table columns to TEXT format with descriptive defaults
+  - **Voice prompt generator**: Updated to parse text format and generate appropriate AI instructions
+  - **Form validation**: Dual schema approach - numeric values in form, text values in database
+  - **Conversion logic**: Automatic conversion between radio button indices and descriptive text storage
+  - **Enhanced AI instructions**: More specific formatting guidance based on text descriptions
