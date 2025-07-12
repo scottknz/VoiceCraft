@@ -214,86 +214,106 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
               profiles.map((profile) => (
                 <Card
                   key={profile.id}
-                  className={`cursor-pointer transition-all hover:shadow-md group ${
+                  className={`cursor-pointer transition-all hover:shadow-sm group ${
                     profile.isActive
-                      ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
-                      : "h-12" // Minimize inactive profiles
+                      ? "border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/50"
+                      : "border border-gray-200 dark:border-gray-700"
                   }`}
                   onClick={() => handleProfileClick(profile)}
                 >
-                  <CardContent className={profile.isActive ? "p-4" : "p-2"}>
+                  <CardContent className="p-3">
                     <div className="relative">
                       {profile.isActive ? (
-                        // Active profile - full three-line layout
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0 space-y-1">
-                            {/* Line 1: Title */}
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                                Title: {profile.name}
+                        // Active profile - full information
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {profile.name}
                               </h4>
-                            </div>
-                            
-                            {/* Line 2: Description */}
-                            <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">
-                              {getStructureInfo(profile.description).cleanDescription}
-                            </div>
-                            
-                            {/* Line 3: Type (Structure) with files/date on the right */}
-                            <div className="flex items-start justify-between">
-                              <div className="text-xs text-gray-600 dark:text-gray-400">
-                                <span className="font-medium">Type: </span>
-                                <span className="text-blue-600 dark:text-blue-400">
-                                  {getStructureInfo(profile.description).structureName}
-                                </span>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="default" className="text-xs">Active</Badge>
                               </div>
-                              <div className="flex flex-col items-end space-y-1 text-xs text-gray-500 dark:text-gray-400 ml-4">
-                                <div className="flex items-center space-x-1">
-                                  <span>{profile.samplesCount || 0}</span>
-                                  <FileText className="h-3 w-3" />
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <span>{profile.createdAt
-                                    ? new Date(profile.createdAt).toLocaleDateString()
-                                    : "Unknown"}</span>
-                                  <Calendar className="h-3 w-3" />
-                                </div>
-                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(profile);
+                                }}
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={(e) => handleDeleteProfile(profile.id, e)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                disabled={deleteProfileMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
-                          
-                          {/* Action buttons */}
-                          <div className="flex flex-col gap-1 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditModal(profile);
-                              }}
-                              title="Edit profile"
-                            >
-                              <Settings className="h-3 w-3 text-gray-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-red-100 dark:hover:bg-red-900"
-                              onClick={(e) => handleDeleteProfile(profile.id, e)}
-                              disabled={deleteProfileMutation.isPending}
-                              title="Delete profile"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-500" />
-                            </Button>
+                          {profile.description && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                              {getStructureInfo(profile.description).cleanDescription}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-blue-600 dark:text-blue-400">
+                              {getStructureInfo(profile.description).structureName}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <span>{profile.samplesCount || 0}</span>
+                                <FileText className="h-3 w-3" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span>{profile.createdAt
+                                  ? new Date(profile.createdAt).toLocaleDateString()
+                                  : "Unknown"}</span>
+                                <Calendar className="h-3 w-3" />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        // Inactive profile - minimized single line
+                        // Inactive profile - minimal display
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 truncate">
-                            {profile.name}
-                          </h4>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {profile.name}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">Inactive</Badge>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(profile);
+                                }}
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={(e) => handleDeleteProfile(profile.id, e)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                disabled={deleteProfileMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
