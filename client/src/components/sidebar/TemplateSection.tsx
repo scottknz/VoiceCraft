@@ -27,7 +27,7 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { selectedTemplate, setSelectedTemplate } = useChatContext();
+  const { selectedTemplate, setSelectedTemplate, selectedVoiceProfile } = useChatContext();
   
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<StructureTemplate | null>(null);
@@ -192,12 +192,31 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
     setShowTemplateModal(true);
   };
 
-  const handleDefaultTemplateSelect = (templateType: string) => {
+  const handleDefaultTemplateSelect = async (templateType: string) => {
     const defaultTemplate = defaultTemplates.find(t => t.templateType === templateType);
     if (defaultTemplate) {
       setTemplateDescription(defaultTemplate.description);
-      setTemplateContent(defaultTemplate.example || '');
       setFormattingInstructions(defaultTemplate.formattingInstructions || 'Use standard formatting without special styling.');
+      
+      // Generate random rich text content based on template description
+      try {
+        const response = await apiRequest('/api/generate-template-example', {
+          method: 'POST',
+          body: {
+            description: defaultTemplate.description,
+            templateType: templateType
+          }
+        });
+        
+        if (response.content) {
+          setTemplateContent(response.content);
+        } else {
+          setTemplateContent(defaultTemplate.example || '');
+        }
+      } catch (error) {
+        console.error('Failed to generate template example:', error);
+        setTemplateContent(defaultTemplate.example || '');
+      }
     }
   };
 
@@ -262,12 +281,15 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
     }
 
     try {
-      // Generate AI description based on template content
+      // Generate AI description based on template content using active voice profile
+      const activeVoiceProfile = selectedVoiceProfile;
+      
       const response = await apiRequest('/api/generate-template-description', {
         method: 'POST',
         body: {
           content: templateContent,
-          templateType: selectedDefaultTemplate || 'custom'
+          templateType: selectedDefaultTemplate || 'custom',
+          voiceProfileId: activeVoiceProfile?.id
         }
       });
 
@@ -275,7 +297,7 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
         setTemplateDescription(response.description);
         toast({
           title: "Description Updated",
-          description: "Template description has been updated based on your content.",
+          description: "Template description has been updated based on your content structure.",
         });
       }
     } catch (error) {
@@ -486,6 +508,52 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
                     title="Template Structure"
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Previously Saved Templates */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Previously Saved Templates</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {userTemplates.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No saved templates yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {userTemplates.map((template) => (
+                      <div key={template.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium truncate">{template.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{template.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <Button
+                            onClick={() => {
+                              setNewTemplateName(template.name);
+                              setTemplateDescription(template.description);
+                              setTemplateContent(template.editableContent || template.example || '');
+                              setFormattingInstructions(template.formattingInstructions || '');
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            Load
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteTemplate(template)}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

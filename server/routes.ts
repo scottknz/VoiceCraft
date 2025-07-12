@@ -483,6 +483,48 @@ Description:`;
     }
   });
 
+  // Generate template example endpoint
+  app.post("/api/generate-template-example", requireAuth, async (req: any, res) => {
+    try {
+      const { description, templateType } = req.body;
+      
+      if (!description) {
+        return res.status(400).json({ message: "Description is required" });
+      }
+
+      // Generate random rich text content based on template description
+      const prompt = `Based on the following template description, create a realistic example with proper rich text formatting using HTML tags. Make the content engaging and varied, not generic.
+
+Template Type: ${templateType || 'custom'}
+Description: ${description}
+
+Create content that:
+1. Uses proper HTML formatting (<h1>, <h2>, <p>, <strong>, <em>, <ul>, <li>, etc.)
+2. Includes realistic, varied content (names, dates, companies, etc.)
+3. Demonstrates the structure and purpose described
+4. Is professional and well-formatted
+5. Shows different formatting elements where appropriate
+
+Generate only the HTML content without explanations:`;
+
+      const response = await createChatResponse({
+        model: "gemini-2.5-flash",
+        messages: [
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.8,
+        maxTokens: 600
+      });
+
+      res.json({
+        content: response.trim()
+      });
+    } catch (error) {
+      console.error("Error generating template example:", error);
+      res.status(500).json({ message: "Failed to generate template example" });
+    }
+  });
+
   // AI User Session endpoint with DeepSeek R1T2 Chimera
   app.post("/api/ai-session", requireAuth, async (req, res) => {
     try {
