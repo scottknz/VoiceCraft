@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
-import { generateNaturalVoicePrompt } from "./voicePromptGenerator";
+import { generateVoiceSystemPrompt } from "./voicePromptGenerator";
 import type { VoiceProfile } from "@shared/schema";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
@@ -28,7 +28,6 @@ export async function createChatResponse(options: ChatOptions): Promise<string> 
     const enhancedOptions = { ...options };
     
     if (options.voiceProfile) {
-      const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
       const voicePrompt = await generateVoiceSystemPrompt(options.voiceProfile);
       const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
       enhancedOptions.systemInstruction = `${baseInstruction}\n\n${voicePrompt}`;
@@ -66,7 +65,6 @@ async function createGeminiResponse(options: ChatOptions): Promise<string> {
   // Generate voice profile instructions if profile exists
   let voiceInstructions = "";
   if (options.voiceProfile) {
-    const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
     voiceInstructions = await generateVoiceSystemPrompt(options.voiceProfile);
     console.log("Generated voice instructions:", voiceInstructions);
   }
@@ -179,7 +177,6 @@ export async function createChatStream(options: ChatOptions): Promise<{ stream: 
     const enhancedOptions = { ...options };
     
     if (options.voiceProfile) {
-      const { generateVoiceSystemPrompt } = await import('./voicePromptGenerator');
       const voicePrompt = await generateVoiceSystemPrompt(options.voiceProfile);
       const baseInstruction = options.systemInstruction || "You are a helpful AI assistant.";
       enhancedOptions.systemInstruction = `${baseInstruction}\n\n${voicePrompt}`;
