@@ -337,3 +337,12 @@ Changelog:
   - **Enhanced AI guidance**: AI models now receive detailed, specific instructions about user's complete voice profile
   - **Writing pattern recognition**: Analyzes bold text usage, list preferences, sentence structure, professional vs casual tone
   - **Full voice profile utilization**: Every aspect of voice profile now contributes to AI response generation
+- July 12, 2025. **VOICE PROFILE DISPLAY & STREAMING FIXES**: Resolved cache and streaming issues for optimal user experience
+  - **Cache invalidation fix**: Voice profile updates now immediately refresh in chat interface
+  - **Immediate profile display**: Active voice profile information updates instantly after editing
+  - **Streaming optimization**: Increased token limits to 3000 for longer AI responses
+  - **Enhanced error handling**: Added detailed logging for streaming issues and partial responses
+  - **Force refresh mechanism**: Added immediate cache refresh and refetch after voice profile updates
+  - **Focus-based refresh**: Voice profiles automatically refresh when window regains focus
+  - **Complete response delivery**: Fixed streaming cutoff issues for full AI response generation
+  - **Real-time voice profile tracking**: Active profile badge above message input updates immediately

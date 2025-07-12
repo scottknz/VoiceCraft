@@ -320,7 +320,7 @@ async function createRouterStream(options: ChatOptions): Promise<{ stream: Reada
       model: getRouterModelName(options.model),
       messages: messages,
       temperature: options.temperature || 0.7,
-      max_tokens: options.maxTokens || 1500,
+      max_tokens: options.maxTokens || 3000,
       stream: true
     })
   });
@@ -374,11 +374,13 @@ async function createRouterStream(options: ChatOptions): Promise<{ stream: Reada
         }
         
         // If we reach here without hitting [DONE], close the stream
+        console.log("Stream ended naturally, response length:", fullResponseText.length);
         controller.close();
         fullResponsePromiseResolve(fullResponseText);
         
       } catch (error) {
         console.error("Router streaming error:", error);
+        console.log("Partial response before error:", fullResponseText);
         controller.error(error);
         fullResponsePromiseResolve(fullResponseText || "Error occurred during streaming");
       } finally {
