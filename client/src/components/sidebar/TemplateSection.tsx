@@ -293,7 +293,6 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
 
           {/* User Templates */}
           <div className="space-y-2">
-            <div className="text-sm font-medium">Your Templates:</div>
             <ScrollArea className="h-40">
               {userTemplates.length === 0 ? (
                 <div className="text-center py-4">
