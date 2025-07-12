@@ -487,6 +487,81 @@ function TemplateSection({ className }: TemplateSectionProps) {
               </CardContent>
             </Card>
 
+            {/* Template Example - Rich Text Editor */}
+            <Card className="flex-1 min-h-0">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Template Example</CardTitle>
+                  <Button
+                    onClick={handleUpdateDescription}
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Update Description
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden">
+                <div className="border rounded-lg h-full min-h-[300px] overflow-hidden">
+                  <Textarea
+                    value={templateContent}
+                    onChange={(e) => setTemplateContent(e.target.value)}
+                    placeholder="Rich text content will appear here after selecting a template..."
+                    className="w-full h-full resize-none border-0 focus:ring-0 focus:border-0 rounded-lg p-4"
+                    rows={12}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Previously Saved Templates */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Previously Saved Templates</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {userTemplates.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No saved templates yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {userTemplates.map((template) => (
+                      <div key={template.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium truncate">{template.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{template.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <Button
+                            onClick={() => {
+                              setNewTemplateName(template.name);
+                              setTemplateDescription(template.description);
+                              setTemplateContent(template.editableContent || template.example || '');
+                              setFormattingInstructions(template.formattingInstructions || '');
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            Load
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteTemplate(template)}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Rich Text Editor */}
             <Card className="flex-1 min-h-0">
               <CardHeader>
