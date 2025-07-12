@@ -28,7 +28,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Initialize model with default
   const [selectedModel, setSelectedModel] = useState<string>("deepseek-r1t2-chimera");
+  
   const [activeVoiceProfile, setActiveVoiceProfile] = useState<VoiceProfile | null>(null);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -133,18 +136,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Load saved preferences
   useEffect(() => {
     const savedModel = localStorage.getItem("selectedModel");
-    const validModels = ["gpt-4o", "gpt-3.5-turbo", "gemini-2.5-pro", "gemini-2.5-flash"];
+    const validModels = [
+      "gpt-4o", 
+      "gpt-3.5-turbo", 
+      "gemini-2.5-pro", 
+      "gemini-2.5-flash",
+      "claude-3-5-sonnet",
+      "claude-3-opus",
+      "claude-3-haiku",
+      "gpt-4-turbo",
+      "llama-3-70b",
+      "mixtral-8x7b",
+      "deepseek-r1t2-chimera"
+    ];
     if (savedModel && validModels.includes(savedModel)) {
       setSelectedModel(savedModel);
+      console.log("Loaded saved model:", savedModel);
     } else {
       // Reset to default if invalid model is stored
-      setSelectedModel("gemini-2.5-flash");
-      localStorage.setItem("selectedModel", "gemini-2.5-flash");
+      setSelectedModel("deepseek-r1t2-chimera");
+      localStorage.setItem("selectedModel", "deepseek-r1t2-chimera");
+      console.log("Reset to default model: deepseek-r1t2-chimera");
     }
   }, []);
 
   // Save model preference
   useEffect(() => {
+    console.log("Saving model to localStorage:", selectedModel);
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 

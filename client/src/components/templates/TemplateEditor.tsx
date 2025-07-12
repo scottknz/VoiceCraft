@@ -241,10 +241,15 @@ export default function TemplateEditor({
     mutationFn: async (exampleContent: string) => {
       console.log('Generating description for example:', exampleContent);
       console.log('Using model:', selectedModel);
+      
+      // Get current description for partial update
+      const currentDescription = descriptionEditor?.getHTML() || '';
+      
       const response = await apiRequest('POST', '/api/generate-template-description', {
         content: exampleContent,
         templateType: selectedDefaultTemplate,
         model: selectedModel,
+        currentDescription: currentDescription,
         voiceProfile: selectedVoiceProfile,
       });
       const result = await response.json();
@@ -292,6 +297,7 @@ export default function TemplateEditor({
 
   // Handle template selection
   const handleTemplateSelect = (template: StructureTemplate) => {
+    console.log('Template selected:', template.name);
     setSelectedTemplate(template.name);
     setSelectedDefaultTemplate(template.name.toLowerCase().replace(/\s+/g, '_'));
     setTemplateName(template.name);
@@ -304,8 +310,9 @@ export default function TemplateEditor({
     // Load the template example if available
     if (exampleEditor && template.editableContent) {
       exampleEditor.commands.setContent(template.editableContent);
-    } else if (exampleEditor) {
+    } else if (exampleEditor && template.description) {
       // If no example exists, generate one from the description
+      console.log('No example content, generating from description');
       setIsUpdatingFromDescription(true);
       generateExampleMutation.mutate(template.description);
     }

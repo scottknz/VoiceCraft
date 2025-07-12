@@ -445,14 +445,32 @@ Respond with only the title, no quotes or additional text.`;
   // Generate template description endpoint
   app.post("/api/generate-template-description", requireAuth, async (req: any, res) => {
     try {
-      const { content, templateType, model } = req.body;
+      const { content, templateType, model, currentDescription } = req.body;
       
       if (!content) {
         return res.status(400).json({ message: "Content is required" });
       }
 
+      console.log("Generating template description with model:", model);
+
       // Generate AI description based on template content
-      const prompt = `Analyze the following template content and generate a concise, AI-optimized description that explains what this template is for and how it should be used. Focus on the structure, purpose, and key formatting elements.
+      const prompt = currentDescription ? 
+        `You have a template with an existing description. Analyze the template content and update ONLY the parts of the description that have changed or need to be added based on the new content. Keep unchanged information exactly as it is.
+
+Current Description: ${currentDescription}
+
+Template Type: ${templateType || 'custom'}
+New Template Content: ${content}
+
+Instructions:
+1. Compare the new template content with the current description
+2. Keep all accurate existing information unchanged
+3. Only update or add information that has changed or is new
+4. Maintain the same professional tone and format
+5. Focus on structure, purpose, and key formatting elements
+
+Updated Description:` :
+        `Analyze the following template content and generate a concise, AI-optimized description that explains what this template is for and how it should be used. Focus on the structure, purpose, and key formatting elements.
 
 Template Type: ${templateType || 'custom'}
 Template Content: ${content}
@@ -466,7 +484,7 @@ Generate a description that is:
 Description:`;
 
       const response = await createChatResponse({
-        model: model || "gemini-2.5-flash",
+        model: model || "deepseek-r1t2-chimera",
         messages: [
           { role: "user", content: prompt }
         ],
@@ -507,8 +525,10 @@ Create content that:
 
 Generate only the HTML content without explanations:`;
 
+      console.log("Generating template example with model:", model);
+      
       const response = await createChatResponse({
-        model: model || "gemini-2.5-flash",
+        model: model || "deepseek-r1t2-chimera",
         messages: [
           { role: "user", content: prompt }
         ],
