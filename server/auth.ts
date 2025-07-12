@@ -76,9 +76,13 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: any, done) => {
     try {
-      const user = await storage.getUser(id.toString());
+      const userId = typeof id === 'number' ? id : parseInt(id);
+      if (isNaN(userId)) {
+        return done(new Error('Invalid user ID'));
+      }
+      const user = await storage.getUser(userId);
       done(null, user);
     } catch (error) {
       done(error);
