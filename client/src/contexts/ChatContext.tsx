@@ -133,31 +133,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Load saved preferences
+  // Load saved preferences - FORCE DEEPSEEK for now
   useEffect(() => {
-    const savedModel = localStorage.getItem("selectedModel");
-    const validModels = [
-      "gpt-4o", 
-      "gpt-3.5-turbo", 
-      "gemini-2.5-pro", 
-      "gemini-2.5-flash",
-      "claude-3-5-sonnet",
-      "claude-3-opus",
-      "claude-3-haiku",
-      "gpt-4-turbo",
-      "llama-3-70b",
-      "mixtral-8x7b",
-      "deepseek-r1t2-chimera"
-    ];
-    if (savedModel && validModels.includes(savedModel)) {
-      setSelectedModel(savedModel);
-      console.log("Loaded saved model:", savedModel);
-    } else {
-      // Reset to default if invalid model is stored
-      setSelectedModel("deepseek-r1t2-chimera");
-      localStorage.setItem("selectedModel", "deepseek-r1t2-chimera");
-      console.log("Reset to default model: deepseek-r1t2-chimera");
-    }
+    // Force clear old model selection and use DeepSeek
+    localStorage.removeItem("selectedModel");
+    setSelectedModel("deepseek-r1t2-chimera");
+    localStorage.setItem("selectedModel", "deepseek-r1t2-chimera");
+    console.log("Forced model to: deepseek-r1t2-chimera");
   }, []);
 
   // Save model preference
