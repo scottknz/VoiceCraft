@@ -27,6 +27,10 @@ export default function VoiceProfileSidebar({ onClose }: VoiceProfileSidebarProp
   const { data: profiles = [], isLoading } = useQuery<VoiceProfile[]>({
     queryKey: ["/api/voice-profiles"],
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const activateProfileMutation = useMutation({

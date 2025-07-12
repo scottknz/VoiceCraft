@@ -78,8 +78,6 @@ export function setupAuth(app: Express) {
   
   passport.deserializeUser(async (id: any, done) => {
     try {
-      console.log('Deserializing user ID:', id, 'Type:', typeof id);
-      
       // Handle various ID formats
       let userId: number;
       if (typeof id === 'number') {
@@ -87,24 +85,20 @@ export function setupAuth(app: Express) {
       } else if (typeof id === 'string') {
         userId = parseInt(id);
       } else {
-        console.log('Invalid ID format, clearing session');
         return done(null, false); // Clear session for invalid ID
       }
       
       if (isNaN(userId) || userId <= 0) {
-        console.log('Invalid user ID, clearing session');
         return done(null, false); // Clear session for invalid ID
       }
       
       const user = await storage.getUser(userId);
       if (!user) {
-        console.log('User not found, clearing session');
         return done(null, false); // Clear session if user doesn't exist
       }
       
       done(null, user);
     } catch (error) {
-      console.error('Error deserializing user:', error);
       done(null, false); // Clear session on error
     }
   });

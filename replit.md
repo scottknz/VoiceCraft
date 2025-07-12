@@ -274,3 +274,12 @@ Changelog:
   - Template system supports both standard predefined options and personalized user-created structures
   - Selected structure template name automatically saves to voice profile description field (format: "Structure: [Template Name]")
   - Template selection updates both structure preferences and visible profile description for easy identification
+- July 12, 2025. **PERFORMANCE OPTIMIZATION**: Implemented comprehensive performance optimizations to reduce Replit credit burn
+  - Enhanced React Query caching: Extended staleTime to 5 minutes for auth queries, 2 minutes for conversations/voice profiles
+  - Disabled automatic refetching: refetchOnWindowFocus, refetchOnMount, and refetchOnReconnect set to false across all queries
+  - Optimized database query frequency by extending cache duration and reducing redundant API calls
+  - Improved useChat hook to prevent unnecessary re-renders with better change detection logic
+  - Reduced authentication deserialization logging to minimize console spam
+  - Enhanced error handling in streaming chat responses to prevent resource leaks
+  - Implemented smart message synchronization to avoid infinite loops and excessive state updates
+  - Query cache now retains data for 10 minutes (gcTime) to maximize reuse and minimize API calls

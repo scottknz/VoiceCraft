@@ -27,11 +27,15 @@ export function useChat(conversationId: number | null) {
   const [streamingContent, setStreamingContent] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch messages from database
+  // Fetch messages from database - optimized for performance
   const { data: dbMessages = [], isLoading } = useQuery<Message[]>({
     queryKey: [`/api/conversations/${conversationId}/messages`],
     enabled: !!conversationId && !!user,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Clear messages when conversation changes
@@ -51,39 +55,44 @@ export function useChat(conversationId: number | null) {
     }));
   }, [dbMessages]);
 
-  // Sync database messages with local state - but preserve optimistic updates
+  // Sync database messages with local state - optimized to prevent unnecessary re-renders
   useEffect(() => {
     if (!conversationId) {
       setLocalMessages([]);
       return;
     }
     
-    if (formattedDbMessages.length > 0) {
-      setLocalMessages(prev => {
-        // Check if we have temporary/optimistic messages
-        const hasOptimisticMessages = prev.some(msg => 
-          msg.id.toString().startsWith('user-') || 
-          msg.id.toString().startsWith('temp-') ||
-          msg.isTemporary
-        );
-        
-        if (hasOptimisticMessages) {
-          // Keep the optimistic messages, don't overwrite
-          return prev;
-        }
-        
-        // Only update if there's actually a change
-        if (prev.length !== formattedDbMessages.length || 
-            prev.some((msg, index) => msg.id !== formattedDbMessages[index]?.id)) {
-          console.log("Updating messages from database:", formattedDbMessages.length, "messages");
-          return formattedDbMessages;
-        }
-        
+    // Only sync if we have no optimistic messages and there are actual changes
+    setLocalMessages(prev => {
+      // Check if we have temporary/optimistic messages
+      const hasOptimisticMessages = prev.some(msg => 
+        msg.id.toString().startsWith('user-') || 
+        msg.id.toString().startsWith('temp-') ||
+        msg.isTemporary
+      );
+      
+      if (hasOptimisticMessages) {
+        // Keep the optimistic messages, don't overwrite
         return prev;
+      }
+      
+      // Only update if there's actually a meaningful change
+      if (formattedDbMessages.length === 0 && prev.length === 0) {
+        return prev; // No change
+      }
+      
+      if (formattedDbMessages.length !== prev.length) {
+        return formattedDbMessages;
+      }
+      
+      // Check if content has changed
+      const hasContentChanged = formattedDbMessages.some((msg, index) => {
+        const prevMsg = prev[index];
+        return !prevMsg || msg.id !== prevMsg.id || msg.content !== prevMsg.content;
       });
-    } else {
-      setLocalMessages([]);
-    }
+      
+      return hasContentChanged ? formattedDbMessages : prev;
+    });
   }, [formattedDbMessages, conversationId]);
 
   // Send message mutation with optimistic updates
