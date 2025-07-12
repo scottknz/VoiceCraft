@@ -47,7 +47,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   });
 
   // Query voice profiles to track active profile
-  const { data: voiceProfiles = [] } = useQuery<VoiceProfile[]>({
+  const { data: voiceProfiles = [], refetch: refetchVoiceProfiles } = useQuery<VoiceProfile[]>({
     queryKey: ["/api/voice-profiles"],
     enabled: !!user,
     retry: false,
@@ -87,6 +87,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setActiveVoiceProfile(null);
     }
   }, [voiceProfiles]);
+
+  // Force refresh voice profiles when window regains focus (helps with cache issues)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        refetchVoiceProfiles();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, refetchVoiceProfiles]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (data: { title?: string }) => {

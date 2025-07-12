@@ -172,7 +172,9 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
         title: "Success",
         description: `Voice profile ${profile ? "updated" : "created"} successfully`,
       });
+      // Force immediate refresh of voice profiles
       queryClient.invalidateQueries({ queryKey: ["/api/voice-profiles"] });
+      queryClient.refetchQueries({ queryKey: ["/api/voice-profiles"] });
       onClose();
       form.reset();
     },
