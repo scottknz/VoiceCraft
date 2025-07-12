@@ -14,7 +14,7 @@ import TemplateEditor from './TemplateEditor';
 interface TemplateSelectorProps {
   selectedTemplate: StructureTemplate | null;
   onTemplateSelect: (template: StructureTemplate | null) => void;
-  onTemplateUpdate: (template: StructureTemplate) => void;
+  onTemplateUpdate: (template: StructureTemplate, formattingInstructions?: string) => void;
 }
 
 export default function TemplateSelector({ 
@@ -25,6 +25,7 @@ export default function TemplateSelector({
   const [showEditor, setShowEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<StructureTemplate | null>(null);
   const [editorContent, setEditorContent] = useState('');
+  const [formattingInstructions, setFormattingInstructions] = useState('');
 
   const { data: templates, isLoading } = useQuery<{
     default: StructureTemplate[];
@@ -48,7 +49,8 @@ export default function TemplateSelector({
 
   const handleEditTemplate = (template: StructureTemplate) => {
     setEditingTemplate(template);
-    setEditorContent(template.example || '');
+    setEditorContent(template.editableContent || template.example || '');
+    setFormattingInstructions(template.formattingInstructions || '');
     setShowEditor(true);
   };
 
@@ -56,9 +58,11 @@ export default function TemplateSelector({
     if (editingTemplate) {
       const updatedTemplate = {
         ...editingTemplate,
-        example: editorContent
+        example: editorContent,
+        editableContent: editorContent,
+        formattingInstructions: formattingInstructions
       };
-      onTemplateUpdate(updatedTemplate);
+      onTemplateUpdate(updatedTemplate, formattingInstructions);
       setShowEditor(false);
     }
   };
@@ -71,6 +75,8 @@ export default function TemplateSelector({
       description: 'Custom template',
       templateType: 'custom',
       example: '<h1>New Template</h1><p>Start editing...</p>',
+      editableContent: '<h1>New Template</h1><p>Start editing...</p>',
+      formattingInstructions: 'Use standard formatting without special styling.',
       isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -231,7 +237,10 @@ export default function TemplateSelector({
           <div className="flex-1 h-full">
             <TemplateEditor
               content={editorContent}
-              onChange={setEditorContent}
+              onChange={(newContent, formatting) => {
+                setEditorContent(newContent);
+                if (formatting) setFormattingInstructions(formatting);
+              }}
               onSave={handleSaveTemplate}
               title={editingTemplate?.name || 'New Template'}
             />

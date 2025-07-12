@@ -24,7 +24,7 @@ interface TemplateOutputPanelProps {
   onWidthChange: (width: number) => void;
   template: StructureTemplate | null;
   content: string;
-  onContentChange: (content: string) => void;
+  onContentChange: (content: string, formattingInstructions?: string) => void;
 }
 
 export default function TemplateOutputPanel({
@@ -143,7 +143,9 @@ export default function TemplateOutputPanel({
           {template && content ? (
             <TemplateEditor
               content={content}
-              onChange={onContentChange}
+              onChange={(newContent, formattingInstructions) => {
+                onContentChange(newContent, formattingInstructions);
+              }}
               onSave={() => {}}
               title={`${template.name} Output`}
               isReadOnly={false}

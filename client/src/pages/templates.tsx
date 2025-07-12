@@ -30,6 +30,8 @@ export default function Templates() {
         description: template.description,
         example: template.example,
         templateType: template.templateType,
+        editableContent: template.editableContent,
+        formattingInstructions: template.formattingInstructions,
       });
       return response.json();
     },
@@ -94,7 +96,12 @@ export default function Templates() {
     },
   });
 
-  const handleTemplateUpdate = (template: StructureTemplate) => {
+  const handleTemplateUpdate = (template: StructureTemplate, formattingInstructions?: string) => {
+    // Include formatting instructions if provided
+    const updatedTemplate = formattingInstructions
+      ? { ...template, formattingInstructions }
+      : template;
+      
     if (template.id < 1000) { // Assume new templates have temporary IDs
       createTemplateMutation.mutate({
         userId: user?.id || 1,
@@ -102,16 +109,18 @@ export default function Templates() {
         description: template.description,
         templateType: template.templateType,
         example: template.example,
+        editableContent: template.editableContent,
+        formattingInstructions: template.formattingInstructions,
         isDefault: false,
       });
     } else {
-      updateTemplateMutation.mutate(template);
+      updateTemplateMutation.mutate(updatedTemplate);
     }
   };
 
   const handleTestTemplate = () => {
     if (selectedTemplate) {
-      setOutputContent(selectedTemplate.example || '');
+      setOutputContent(selectedTemplate.editableContent || selectedTemplate.example || '');
       setShowOutputPanel(true);
     }
   };
@@ -266,7 +275,10 @@ export default function Templates() {
         onWidthChange={setOutputPanelWidth}
         template={selectedTemplate}
         content={outputContent}
-        onContentChange={setOutputContent}
+        onContentChange={(content, formattingInstructions) => {
+          setOutputContent(content);
+          // Could also store formattingInstructions for future use
+        }}
       />
     </div>
   );

@@ -152,6 +152,9 @@ export const structureTemplates = pgTable("structure_templates", {
   example: text("example").notNull(),
   isDefault: boolean("is_default").default(false),
   templateType: varchar("template_type").notNull(), // "saved", "email", "linkedin_post", etc.
+  // New fields for editable content and AI formatting instructions
+  editableContent: text("editable_content"), // HTML content from TipTap editor
+  formattingInstructions: text("formatting_instructions"), // AI-readable formatting description
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

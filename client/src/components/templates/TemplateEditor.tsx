@@ -35,7 +35,7 @@ import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 interface TemplateEditorProps {
   content: string;
-  onChange: (content: string) => void;
+  onChange: (content: string, formattingInstructions?: string) => void;
   onSave: () => void;
   title?: string;
   isReadOnly?: boolean;
@@ -48,6 +48,83 @@ export default function TemplateEditor({
   title = "Template Editor",
   isReadOnly = false 
 }: TemplateEditorProps) {
+  // Generate AI-readable formatting instructions from TipTap editor content
+  const generateFormattingInstructions = (editor: any): string => {
+    if (!editor) return '';
+    
+    const json = editor.getJSON();
+    const instructions: string[] = [];
+    
+    // Analyze the document structure and content
+    const analyzeNode = (node: any, level = 0) => {
+      if (!node) return;
+      
+      switch (node.type) {
+        case 'heading':
+          instructions.push(`Use heading level ${node.attrs?.level || 1} for section titles`);
+          break;
+        case 'paragraph':
+          if (node.attrs?.textAlign && node.attrs.textAlign !== 'left') {
+            instructions.push(`Align text to ${node.attrs.textAlign}`);
+          }
+          break;
+        case 'bulletList':
+          instructions.push('Use bullet points for unordered lists');
+          break;
+        case 'orderedList':
+          instructions.push('Use numbered lists for ordered content');
+          break;
+        case 'table':
+          instructions.push('Format content in a table structure when appropriate');
+          break;
+        case 'blockquote':
+          instructions.push('Use blockquotes for emphasized or quoted content');
+          break;
+      }
+      
+      // Analyze text formatting
+      if (node.marks) {
+        node.marks.forEach((mark: any) => {
+          switch (mark.type) {
+            case 'bold':
+              instructions.push('Use bold text for emphasis on key terms');
+              break;
+            case 'italic':
+              instructions.push('Use italic text for subtle emphasis');
+              break;
+            case 'underline':
+              instructions.push('Use underlined text for highlighting');
+              break;
+            case 'textStyle':
+              if (mark.attrs?.color) {
+                instructions.push(`Use colored text (${mark.attrs.color}) for highlighting`);
+              }
+              if (mark.attrs?.fontFamily) {
+                instructions.push(`Use ${mark.attrs.fontFamily} font family`);
+              }
+              break;
+          }
+        });
+      }
+      
+      // Recursively analyze child nodes
+      if (node.content) {
+        node.content.forEach((child: any) => analyzeNode(child, level + 1));
+      }
+    };
+    
+    if (json.content) {
+      json.content.forEach((node: any) => analyzeNode(node));
+    }
+    
+    // Remove duplicates and create a comprehensive instruction
+    const uniqueInstructions = [...new Set(instructions)];
+    
+    return uniqueInstructions.length > 0 
+      ? `Formatting requirements: ${uniqueInstructions.join('; ')}.`
+      : 'Use standard formatting without special styling.';
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -70,7 +147,9 @@ export default function TemplateEditor({
     content: content,
     editable: !isReadOnly,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const htmlContent = editor.getHTML();
+      const formattingInstructions = generateFormattingInstructions(editor);
+      onChange(htmlContent, formattingInstructions);
     },
   });
 
