@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import type { VoiceProfile, Conversation } from "@shared/schema";
+import type { VoiceProfile, Conversation, StructureTemplate } from "@shared/schema";
 
 interface ChatContextType {
   selectedModel: string;
@@ -16,6 +16,10 @@ interface ChatContextType {
   createNewConversation: () => Promise<void>;
   accumulatedContent: string;
   setAccumulatedContent: React.Dispatch<React.SetStateAction<string>>;
+  selectedTemplate: StructureTemplate | null;
+  setSelectedTemplate: (template: StructureTemplate | null) => void;
+  templateOutput: string;
+  setTemplateOutput: (output: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -29,6 +33,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [accumulatedContent, setAccumulatedContent] = useState<string>("");
+  const [selectedTemplate, setSelectedTemplate] = useState<StructureTemplate | null>(null);
+  const [templateOutput, setTemplateOutput] = useState<string>("");
 
   // Query conversations to auto-select the most recent one
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -152,6 +158,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     createNewConversation,
     accumulatedContent,
     setAccumulatedContent,
+    selectedTemplate,
+    setSelectedTemplate,
+    templateOutput,
+    setTemplateOutput,
   };
 
   return (

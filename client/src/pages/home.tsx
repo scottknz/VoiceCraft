@@ -4,7 +4,8 @@ import VoiceProfileSidebar from "@/components/sidebar/VoiceProfileSidebar";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { Button } from "@/components/ui/button";
 import { ChatProvider } from "@/contexts/ChatContext";
-import { Moon, Sun, Menu, LogOut } from "lucide-react";
+import { Link } from "wouter";
+import { Moon, Sun, Menu, LogOut, FileText, User, Sparkles } from "lucide-react";
 
 export default function Home() {
   const { user } = useAuth();
@@ -47,6 +48,22 @@ export default function Home() {
               </div>
               
               <div className="flex items-center gap-2">
+                {/* Templates */}
+                <Link href="/templates">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Templates
+                  </Button>
+                </Link>
+                
+                {/* Profile */}
+                <Link href="/profile">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </Button>
+                </Link>
+                
                 {/* Theme Toggle */}
                 <Button
                   variant="ghost"
