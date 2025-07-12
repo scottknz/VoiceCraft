@@ -295,3 +295,12 @@ Changelog:
   - Integrated with existing structure template database schema for seamless backend compatibility
   - TipTap editor includes toolbar with formatting controls: text styling, alignment, lists, tables, save/export options
   - Added "Back to Chat" exit buttons to both Account Settings and Templates pages for improved navigation
+- July 12, 2025. **TEMPLATES SIDEBAR INTEGRATION**: Integrated template system into main chat sidebar interface
+  - Moved templates from standalone page to sidebar section between Voice Profiles and Conversations
+  - Removed default templates from sidebar display - only shows user-created templates
+  - Replaced structure section in voice profiles since templates now handle this functionality
+  - Active templates styled with blue border and shading matching voice profile design
+  - Templates displayed in sidebar with edit/delete buttons on hover
+  - MessageInput component shows active template badge alongside voice profile
+  - Template selection and creation workflow fully integrated into main chat interface
+  - Removed Templates navigation link from header since functionality moved to sidebar

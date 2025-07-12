@@ -293,99 +293,67 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
 
           {/* User Templates */}
           <div className="space-y-2">
-            <ScrollArea className="h-40">
-              {userTemplates.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-xs text-gray-500">No custom templates yet</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {userTemplates.map((template) => (
-                    <Card 
-                      key={template.id}
-                      className={`cursor-pointer transition-all hover:shadow-sm group ${
-                        selectedTemplate?.id === template.id 
-                          ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' 
-                          : ''
-                      }`}
-                    >
-                      <CardHeader 
-                        className="pb-2 px-3 py-2"
-                        onClick={() => setSelectedTemplate(template)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-sm">{template.name}</CardTitle>
-                            <CardDescription className="text-xs line-clamp-1">
-                              {template.description}
-                            </CardDescription>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditTemplate(template);
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTemplate(template);
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-
-          {/* Default Templates */}
-          <div className="space-y-2 mt-4">
-            <div className="text-sm font-medium">Default Templates:</div>
-            <ScrollArea className="h-32">
+            {userTemplates.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-500">No templates yet</p>
+              </div>
+            ) : (
               <div className="space-y-2">
-                {defaultTemplates.map((template) => (
+                {userTemplates.map((template) => (
                   <Card 
                     key={template.id}
-                    className={`cursor-pointer transition-all hover:shadow-sm ${
+                    className={`cursor-pointer transition-all hover:shadow-sm group ${
                       selectedTemplate?.id === template.id 
-                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950' 
-                        : ''
+                        ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/50' 
+                        : 'border border-gray-200 dark:border-gray-700'
                     }`}
                     onClick={() => setSelectedTemplate(template)}
                   >
-                    <CardHeader className="pb-2 px-3 py-2">
+                    <CardContent className="p-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-sm">{template.name}</CardTitle>
-                          <CardDescription className="text-xs line-clamp-1">
-                            {template.description}
-                          </CardDescription>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {template.name}
+                          </h4>
+                          {template.description && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-1">
+                              {template.description}
+                            </p>
+                          )}
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          Default
-                        </Badge>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditTemplate(template);
+                            }}
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTemplate(template);
+                            }}
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </CardHeader>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
-            </ScrollArea>
+            )}
           </div>
+
+
 
           {/* Clear Selection */}
           {selectedTemplate && (
