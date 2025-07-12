@@ -15,7 +15,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { isUnauthorizedError } from '@/lib/authUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatContext } from '@/contexts/ChatContext';
-import { FileText, Plus, Edit, Trash2, Check, X } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Check, X, RefreshCw } from 'lucide-react';
 import type { StructureTemplate } from '@shared/schema';
 import TemplateEditor from '@/components/templates/TemplateEditor';
 
@@ -251,6 +251,43 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
     }
   };
 
+  const handleUpdateDescription = async () => {
+    if (!templateContent.trim()) {
+      toast({
+        title: "No Content",
+        description: "Please add some content to the template before updating the description.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Generate AI description based on template content
+      const response = await apiRequest('/api/generate-template-description', {
+        method: 'POST',
+        body: {
+          content: templateContent,
+          templateType: selectedDefaultTemplate || 'custom'
+        }
+      });
+
+      if (response.description) {
+        setTemplateDescription(response.description);
+        toast({
+          title: "Description Updated",
+          description: "Template description has been updated based on your content.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update description:', error);
+      toast({
+        title: "Update Failed",
+        description: "Could not generate description. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className={className}>
       {/* Templates Header */}
@@ -376,86 +413,109 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
         )}
       </div>
 
-      {/* Template Creation/Edit Modal */}
+      {/* Template Editor Modal */}
       <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-6xl h-[95vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>
-              {editingTemplate ? `Edit Template: ${editingTemplate.name}` : 'Create New Template'}
-            </DialogTitle>
+            <DialogTitle className="text-xl font-bold">Template Editor</DialogTitle>
           </DialogHeader>
           
           <div className="flex-1 overflow-hidden flex flex-col gap-6">
-            {/* Template Name */}
-            <div className="space-y-2">
-              <Label htmlFor="template-name">Template Name</Label>
-              <Input
-                id="template-name"
-                value={newTemplateName}
-                onChange={(e) => setNewTemplateName(e.target.value)}
-                placeholder="Enter template name"
-              />
-            </div>
+            {/* Default Template Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Select Default Template</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-3">
+                  {defaultTemplates.map((template) => (
+                    <Button
+                      key={template.id}
+                      variant={selectedDefaultTemplate === template.templateType ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedDefaultTemplate(template.templateType);
+                        handleDefaultTemplateSelect(template.templateType);
+                      }}
+                      className="h-20 flex flex-col items-center justify-center text-center p-2"
+                    >
+                      <span className="text-sm font-medium">{template.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Default Template Selection (only for new templates) */}
-            {!editingTemplate && (
-              <div className="space-y-2">
-                <Label htmlFor="default-template">Base Template</Label>
-                <Select value={selectedDefaultTemplate} onValueChange={(value) => {
-                  setSelectedDefaultTemplate(value);
-                  handleDefaultTemplateSelect(value);
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a default template to start with" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {defaultTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.templateType}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* AI Description */}
-            <div className="space-y-2">
-              <Label htmlFor="template-description">AI Description</Label>
-              <Textarea
-                id="template-description"
-                value={templateDescription}
-                onChange={(e) => setTemplateDescription(e.target.value)}
-                placeholder="AI-generated description based on template content"
-                rows={3}
-              />
-            </div>
-
-            {/* Formatting Instructions */}
-            <div className="space-y-2">
-              <Label htmlFor="formatting-instructions">Formatting Instructions</Label>
-              <Textarea
-                id="formatting-instructions"
-                value={formattingInstructions}
-                onChange={(e) => setFormattingInstructions(e.target.value)}
-                placeholder="AI-readable formatting instructions (auto-generated from editor)"
-                rows={2}
-                className="text-xs"
-              />
-            </div>
-
-            {/* TipTap Editor */}
-            <div className="flex-1 min-h-0 space-y-2">
-              <Label>Template Content</Label>
-              <div className="border rounded-lg flex-1 overflow-hidden">
-                <TemplateEditor
-                  content={templateContent}
-                  onChange={handleTemplateContentChange}
-                  onSave={handleSaveTemplate}
-                  title="Template Content"
+            {/* Template Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Template Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  placeholder="AI-optimized prompt that describes this template will appear here..."
+                  rows={4}
+                  className="resize-none"
                 />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+
+            {/* Rich Text Editor */}
+            <Card className="flex-1 min-h-0">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Template Example</CardTitle>
+                  <Button
+                    onClick={handleUpdateDescription}
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Update Description
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-hidden">
+                <div className="border rounded-lg h-full overflow-hidden">
+                  <TemplateEditor
+                    content={templateContent}
+                    onChange={handleTemplateContentChange}
+                    onSave={handleSaveTemplate}
+                    title="Template Structure"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Save Template */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Save Template</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="template-name">Template Name</Label>
+                    <Input
+                      id="template-name"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="Enter template name"
+                      className="mt-2"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSaveTemplate}
+                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending || !newTemplateName.trim()}
+                    className="mt-6"
+                  >
+                    {editingTemplate ? 'Update Template' : 'Save Template'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-4 border-t">
@@ -464,12 +524,6 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
                 variant="outline"
               >
                 Cancel
-              </Button>
-              <Button
-                onClick={handleSaveTemplate}
-                disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
-              >
-                {editingTemplate ? 'Update Template' : 'Create Template'}
               </Button>
             </div>
           </div>

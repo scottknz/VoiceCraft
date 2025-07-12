@@ -442,6 +442,47 @@ Respond with only the title, no quotes or additional text.`;
     }
   });
 
+  // Generate template description endpoint
+  app.post("/api/generate-template-description", requireAuth, async (req: any, res) => {
+    try {
+      const { content, templateType } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      // Generate AI description based on template content
+      const prompt = `Analyze the following template content and generate a concise, AI-optimized description that explains what this template is for and how it should be used. Focus on the structure, purpose, and key formatting elements.
+
+Template Type: ${templateType || 'custom'}
+Template Content: ${content}
+
+Generate a description that is:
+1. Clear and concise (2-3 sentences)
+2. Focused on the template's purpose and structure
+3. Useful for AI systems to understand how to use this template
+4. Professional and actionable
+
+Description:`;
+
+      const response = await createChatResponse({
+        model: "gemini-2.5-flash",
+        messages: [
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        maxTokens: 200
+      });
+
+      res.json({
+        description: response.trim()
+      });
+    } catch (error) {
+      console.error("Error generating template description:", error);
+      res.status(500).json({ message: "Failed to generate template description" });
+    }
+  });
+
   // AI User Session endpoint with DeepSeek R1T2 Chimera
   app.post("/api/ai-session", requireAuth, async (req, res) => {
     try {
