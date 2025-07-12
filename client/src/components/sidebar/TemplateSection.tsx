@@ -23,7 +23,7 @@ interface TemplateSectionProps {
   className?: string;
 }
 
-export default function TemplateSection({ className }: TemplateSectionProps) {
+function TemplateSection({ className }: TemplateSectionProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -504,12 +504,13 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 overflow-hidden">
-                <div className="border rounded-lg h-full overflow-hidden">
-                  <TemplateEditor
-                    content={templateContent}
-                    onChange={handleTemplateContentChange}
-                    onSave={handleSaveTemplate}
-                    title="Template Structure"
+                <div className="border rounded-lg h-full min-h-[300px] overflow-hidden">
+                  <Textarea
+                    value={templateContent}
+                    onChange={(e) => setTemplateContent(e.target.value)}
+                    placeholder="Rich text content will appear here after selecting a template..."
+                    className="w-full h-full resize-none border-0 focus:ring-0 focus:border-0 rounded-lg p-4"
+                    rows={12}
                   />
                 </div>
               </CardContent>
@@ -551,7 +552,7 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
                             variant="outline"
                             className="text-xs text-red-500 hover:text-red-700"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            Delete
                           </Button>
                         </div>
                       </div>
@@ -567,40 +568,31 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
                 <CardTitle className="text-lg">Save Template</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4">
+                <div className="flex gap-4">
                   <div className="flex-1">
-                    <Label htmlFor="template-name">Template Name</Label>
                     <Input
-                      id="template-name"
                       value={newTemplateName}
                       onChange={(e) => setNewTemplateName(e.target.value)}
-                      placeholder="Enter template name"
-                      className="mt-2"
+                      placeholder="Template name..."
+                      className="w-full"
                     />
                   </div>
                   <Button
                     onClick={handleSaveTemplate}
-                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending || !newTemplateName.trim()}
-                    className="mt-6"
+                    disabled={!newTemplateName.trim()}
+                    className="flex items-center gap-2"
                   >
-                    {editingTemplate ? 'Update Template' : 'Save Template'}
+                    <Save className="h-4 w-4" />
+                    Save Template
                   </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button
-                onClick={() => setShowTemplateModal(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+export default TemplateSection;
