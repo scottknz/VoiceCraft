@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
@@ -598,140 +599,166 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
                     <CardTitle>Formatting</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Bold Usage */}
-                    <FormField
-                      control={form.control}
-                      name="boldUsage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Use of bold for key points</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Slider
-                                value={[field.value || 2]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={5}
-                                min={0}
-                                step={1}
-                                className="w-full"
-                              />
-                              <div className="text-sm text-gray-600">
-                                {formattingLabels.boldUsage[field.value || 2]}
-                              </div>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Create radio button grid table */}
+                    <div className="space-y-4">
+                      {/* Header Row */}
+                      <div className="grid grid-cols-6 gap-4 text-sm font-medium">
+                        <div className="text-left">Formatting Question</div>
+                        <div className="text-center">Never</div>
+                        <div className="text-center">Sparingly</div>
+                        <div className="text-center">Sometimes</div>
+                        <div className="text-center">Often</div>
+                        <div className="text-center">As much as possible</div>
+                      </div>
 
-                    {/* Line Spacing */}
-                    <FormField
-                      control={form.control}
-                      name="lineSpacing"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Line spacing: Dense vs spacious</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Slider
-                                value={[field.value || 2]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={5}
-                                min={0}
-                                step={1}
-                                className="w-full"
-                              />
-                              <div className="text-sm text-gray-600">
-                                {formattingLabels.lineSpacing[field.value || 2]}
-                              </div>
+                      {/* Bold Text Row */}
+                      <FormField
+                        control={form.control}
+                        name="boldUsage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-6 gap-4 items-center">
+                              <FormLabel className="text-left">Bold text</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value?.toString() || "2"}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  className="contents"
+                                >
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="0" id="bold-0" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="1" id="bold-1" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="2" id="bold-2" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="3" id="bold-3" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="4" id="bold-4" />
+                                  </div>
+                                </RadioGroup>
+                              </FormControl>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    {/* Emoji Usage */}
-                    <FormField
-                      control={form.control}
-                      name="emojiUsage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Emojis: Never / Sparingly / Expressively</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Slider
-                                value={[field.value || 1]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={5}
-                                min={0}
-                                step={1}
-                                className="w-full"
-                              />
-                              <div className="text-sm text-gray-600">
-                                {formattingLabels.emojiUsage[field.value || 1]}
-                              </div>
+                      {/* Line Spacing Row */}
+                      <FormField
+                        control={form.control}
+                        name="lineSpacing"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-6 gap-4 items-center">
+                              <FormLabel className="text-left">Line spacing</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value?.toString() || "2"}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  className="contents"
+                                >
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="0" id="spacing-0" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="1" id="spacing-1" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="2" id="spacing-2" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="3" id="spacing-3" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="4" id="spacing-4" />
+                                  </div>
+                                </RadioGroup>
+                              </FormControl>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    {/* Lists vs Paragraphs */}
-                    <FormField
-                      control={form.control}
-                      name="listVsParagraphs"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Use of lists vs paragraphs</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Slider
-                                value={[field.value || 2]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={5}
-                                min={0}
-                                step={1}
-                                className="w-full"
-                              />
-                              <div className="text-sm text-gray-600">
-                                {formattingLabels.listVsParagraphs[field.value || 2]}
-                              </div>
+                      {/* Emojis Row */}
+                      <FormField
+                        control={form.control}
+                        name="emojiUsage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-6 gap-4 items-center">
+                              <FormLabel className="text-left">Emojis</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value?.toString() || "1"}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  className="contents"
+                                >
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="0" id="emoji-0" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="1" id="emoji-1" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="2" id="emoji-2" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="3" id="emoji-3" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="4" id="emoji-4" />
+                                  </div>
+                                </RadioGroup>
+                              </FormControl>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    {/* Markup Style */}
-                    <FormField
-                      control={form.control}
-                      name="markupStyle"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Markdown / plain text / HTML</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <Slider
-                                value={[field.value || 2]}
-                                onValueChange={(values) => field.onChange(values[0])}
-                                max={5}
-                                min={0}
-                                step={1}
-                                className="w-full"
-                              />
-                              <div className="text-sm text-gray-600">
-                                {formattingLabels.markupStyle[field.value || 2]}
-                              </div>
+                      {/* Lists & Bullets Row */}
+                      <FormField
+                        control={form.control}
+                        name="listVsParagraphs"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-6 gap-4 items-center">
+                              <FormLabel className="text-left">Lists & Bullets</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value?.toString() || "2"}
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  className="contents"
+                                >
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="0" id="lists-0" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="1" id="lists-1" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="2" id="lists-2" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="3" id="lists-3" />
+                                  </div>
+                                  <div className="flex justify-center">
+                                    <RadioGroupItem value="4" id="lists-4" />
+                                  </div>
+                                </RadioGroup>
+                              </FormControl>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </CardContent>
                 </Card>
                   </TabsContent>
