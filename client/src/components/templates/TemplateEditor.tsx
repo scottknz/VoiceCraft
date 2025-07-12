@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { useChatContext } from '@/contexts/ChatContext';
 import { apiRequest } from '@/lib/queryClient';
 import { 
   Bold, 
@@ -178,6 +179,7 @@ export default function TemplateEditor({
   selectedVoiceProfile
 }: TemplateEditorProps) {
   const { toast } = useToast();
+  const { selectedModel } = useChatContext();
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [selectedDefaultTemplate, setSelectedDefaultTemplate] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
@@ -202,9 +204,11 @@ export default function TemplateEditor({
   const generateExampleMutation = useMutation({
     mutationFn: async (description: string) => {
       console.log('Generating example for description:', description);
+      console.log('Using model:', selectedModel);
       const response = await apiRequest('POST', '/api/generate-template-example', {
         description,
         templateType: selectedDefaultTemplate,
+        model: selectedModel,
         voiceProfile: selectedVoiceProfile,
       });
       const result = await response.json();
@@ -236,9 +240,11 @@ export default function TemplateEditor({
   const generateDescriptionMutation = useMutation({
     mutationFn: async (exampleContent: string) => {
       console.log('Generating description for example:', exampleContent);
+      console.log('Using model:', selectedModel);
       const response = await apiRequest('POST', '/api/generate-template-description', {
         content: exampleContent,
         templateType: selectedDefaultTemplate,
+        model: selectedModel,
         voiceProfile: selectedVoiceProfile,
       });
       const result = await response.json();

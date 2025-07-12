@@ -445,7 +445,7 @@ Respond with only the title, no quotes or additional text.`;
   // Generate template description endpoint
   app.post("/api/generate-template-description", requireAuth, async (req: any, res) => {
     try {
-      const { content, templateType } = req.body;
+      const { content, templateType, model } = req.body;
       
       if (!content) {
         return res.status(400).json({ message: "Content is required" });
@@ -466,7 +466,7 @@ Generate a description that is:
 Description:`;
 
       const response = await createChatResponse({
-        model: "gpt-4o",
+        model: model || "gemini-2.5-flash",
         messages: [
           { role: "user", content: prompt }
         ],
@@ -486,7 +486,7 @@ Description:`;
   // Generate template example endpoint
   app.post("/api/generate-template-example", requireAuth, async (req: any, res) => {
     try {
-      const { description, templateType } = req.body;
+      const { description, templateType, model } = req.body;
       
       if (!description) {
         return res.status(400).json({ message: "Description is required" });
@@ -508,7 +508,7 @@ Create content that:
 Generate only the HTML content without explanations:`;
 
       const response = await createChatResponse({
-        model: "gpt-4o",
+        model: model || "gemini-2.5-flash",
         messages: [
           { role: "user", content: prompt }
         ],
