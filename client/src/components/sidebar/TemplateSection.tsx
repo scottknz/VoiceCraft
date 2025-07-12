@@ -440,232 +440,33 @@ function TemplateSection({ className }: TemplateSectionProps) {
       </div>
 
       {/* Template Editor Modal */}
-      <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
-        <DialogContent className="max-w-6xl h-[95vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Template Editor</DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-hidden flex flex-col gap-6">
-            {/* Default Template Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Select Default Template</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-3">
-                  {defaultTemplates.map((template) => (
-                    <Button
-                      key={template.id}
-                      variant={selectedDefaultTemplate === template.templateType ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedDefaultTemplate(template.templateType);
-                        handleDefaultTemplateSelect(template.templateType);
-                      }}
-                      className="h-20 flex flex-col items-center justify-center text-center p-2"
-                    >
-                      <span className="text-sm font-medium">{template.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Template Description */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Template Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={templateDescription}
-                  onChange={(e) => setTemplateDescription(e.target.value)}
-                  placeholder="AI-optimized prompt that describes this template will appear here..."
-                  rows={4}
-                  className="resize-none"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Template Example - Rich Text Editor */}
-            <Card className="flex-1 min-h-0">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Template Example</CardTitle>
-                  <Button
-                    onClick={handleUpdateDescription}
-                    size="sm"
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Update Description
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                <div className="border rounded-lg h-full min-h-[300px] overflow-hidden">
-                  <Textarea
-                    value={templateContent}
-                    onChange={(e) => setTemplateContent(e.target.value)}
-                    placeholder="Rich text content will appear here after selecting a template..."
-                    className="w-full h-full resize-none border-0 focus:ring-0 focus:border-0 rounded-lg p-4"
-                    rows={12}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Previously Saved Templates */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Previously Saved Templates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {userTemplates.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No saved templates yet</p>
-                ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {userTemplates.map((template) => (
-                      <div key={template.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium truncate">{template.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{template.description}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <Button
-                            onClick={() => {
-                              setNewTemplateName(template.name);
-                              setTemplateDescription(template.description);
-                              setTemplateContent(template.editableContent || template.example || '');
-                              setFormattingInstructions(template.formattingInstructions || '');
-                            }}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            Load
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteTemplate(template)}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs text-red-500 hover:text-red-700"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Rich Text Editor */}
-            <Card className="flex-1 min-h-0">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Template Example</CardTitle>
-                  <Button
-                    onClick={handleUpdateDescription}
-                    size="sm"
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Update Description
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden">
-                <div className="border rounded-lg h-full min-h-[300px] overflow-hidden">
-                  <Textarea
-                    value={templateContent}
-                    onChange={(e) => setTemplateContent(e.target.value)}
-                    placeholder="Rich text content will appear here after selecting a template..."
-                    className="w-full h-full resize-none border-0 focus:ring-0 focus:border-0 rounded-lg p-4"
-                    rows={12}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Previously Saved Templates */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Previously Saved Templates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {userTemplates.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No saved templates yet</p>
-                ) : (
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {userTemplates.map((template) => (
-                      <div key={template.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium truncate">{template.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{template.description}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <Button
-                            onClick={() => {
-                              setNewTemplateName(template.name);
-                              setTemplateDescription(template.description);
-                              setTemplateContent(template.editableContent || template.example || '');
-                              setFormattingInstructions(template.formattingInstructions || '');
-                            }}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            Load
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteTemplate(template)}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs text-red-500 hover:text-red-700"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Save Template */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Save Template</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Input
-                      value={newTemplateName}
-                      onChange={(e) => setNewTemplateName(e.target.value)}
-                      placeholder="Template name..."
-                      className="w-full"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSaveTemplate}
-                    disabled={!newTemplateName.trim()}
-                    className="flex items-center gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Template
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TemplateEditor
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onSave={(template) => {
+          if (editingTemplate) {
+            // Update existing template
+            const updatedTemplate = {
+              ...editingTemplate,
+              ...template
+            };
+            updateTemplateMutation.mutate(updatedTemplate);
+          } else {
+            // Create new template
+            const newTemplate = {
+              userId: user?.id || 1,
+              ...template,
+              templateType: 'custom',
+              example: template.editableContent,
+              isDefault: false,
+            };
+            createTemplateMutation.mutate(newTemplate);
+          }
+        }}
+        defaultTemplates={defaultTemplates}
+        userTemplates={userTemplates}
+        selectedVoiceProfile={selectedVoiceProfile}
+      />
     </div>
   );
 }

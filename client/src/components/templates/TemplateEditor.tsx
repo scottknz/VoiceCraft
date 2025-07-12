@@ -15,12 +15,10 @@ import TableCell from '@tiptap/extension-table-cell';
 import { useMutation } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -35,11 +33,8 @@ import {
   AlignRight,
   Table as TableIcon,
   Save,
-  X,
   RefreshCw,
-  FileText,
-  Trash2,
-  Download
+  Trash2
 } from 'lucide-react';
 import type { StructureTemplate } from '@shared/schema';
 
@@ -61,6 +56,119 @@ interface TemplateEditorProps {
   };
 }
 
+const editorExtensions = [
+  StarterKit.configure({
+    bulletList: false,
+    orderedList: false,
+    listItem: false,
+  }),
+  TextStyle,
+  Color,
+  TextAlign.configure({
+    types: ['heading', 'paragraph'],
+  }),
+  FontFamily,
+  ListItem,
+  BulletList,
+  OrderedList,
+  Table.configure({
+    resizable: true,
+  }),
+  TableRow,
+  TableHeader,
+  TableCell,
+];
+
+// Toolbar component that can be reused for both editors
+const EditorToolbar = ({ editor }: { editor: any }) => {
+  if (!editor) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1 p-2 border-b bg-gray-50 dark:bg-gray-900">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <Bold className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <Italic className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        className={editor.isActive('underline') ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <Underline className="h-4 w-4" />
+      </Button>
+      
+      <Separator orientation="vertical" className="h-6" />
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        className={editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <AlignLeft className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        className={editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <AlignCenter className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        className={editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <AlignRight className="h-4 w-4" />
+      </Button>
+      
+      <Separator orientation="vertical" className="h-6" />
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <List className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-700' : ''}
+      >
+        <ListOrdered className="h-4 w-4" />
+      </Button>
+      
+      <Separator orientation="vertical" className="h-6" />
+      
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+      >
+        <TableIcon className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 export default function TemplateEditor({
   isOpen,
   onClose,
@@ -70,197 +178,120 @@ export default function TemplateEditor({
   selectedVoiceProfile
 }: TemplateEditorProps) {
   const { toast } = useToast();
-  const [selectedDefaultTemplate, setSelectedDefaultTemplate] = useState<string>('');
-  const [templateDescription, setTemplateDescription] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isUpdatingDescription, setIsUpdatingDescription] = useState(false);
+  const [isUpdatingFromDescription, setIsUpdatingFromDescription] = useState(false);
+  const [isUpdatingFromExample, setIsUpdatingFromExample] = useState(false);
 
-  // Generate AI-readable formatting instructions from TipTap editor content
-  const generateFormattingInstructions = (editor: any): string => {
-    if (!editor) return '';
-    
-    const json = editor.getJSON();
-    const instructions: string[] = [];
-    
-    // Analyze the document structure and content
-    const analyzeNode = (node: any, level = 0) => {
-      if (!node) return;
-      
-      switch (node.type) {
-        case 'heading':
-          instructions.push(`Use heading level ${node.attrs?.level || 1} for section titles`);
-          break;
-        case 'paragraph':
-          if (node.attrs?.textAlign && node.attrs.textAlign !== 'left') {
-            instructions.push(`Align text to ${node.attrs.textAlign}`);
-          }
-          break;
-        case 'bulletList':
-          instructions.push('Use bullet points for unordered lists');
-          break;
-        case 'orderedList':
-          instructions.push('Use numbered lists for ordered content');
-          break;
-        case 'table':
-          instructions.push('Format content in a table structure when appropriate');
-          break;
-        case 'blockquote':
-          instructions.push('Use blockquotes for emphasized or quoted content');
-          break;
-      }
-      
-      // Analyze text formatting
-      if (node.marks) {
-        node.marks.forEach((mark: any) => {
-          switch (mark.type) {
-            case 'bold':
-              instructions.push('Use bold text for emphasis on key terms');
-              break;
-            case 'italic':
-              instructions.push('Use italic text for subtle emphasis');
-              break;
-            case 'underline':
-              instructions.push('Use underlined text for highlighting');
-              break;
-            case 'textStyle':
-              if (mark.attrs?.color) {
-                instructions.push(`Use colored text (${mark.attrs.color}) for highlighting`);
-              }
-              if (mark.attrs?.fontFamily) {
-                instructions.push(`Use ${mark.attrs.fontFamily} font family`);
-              }
-              break;
-          }
-        });
-      }
-      
-      // Recursively analyze child nodes
-      if (node.content) {
-        node.content.forEach((child: any) => analyzeNode(child, level + 1));
-      }
-    };
-    
-    if (json.content) {
-      json.content.forEach((node: any) => analyzeNode(node));
-    }
-    
-    // Remove duplicates and create a comprehensive instruction
-    const uniqueInstructions = [...new Set(instructions)];
-    
-    return uniqueInstructions.length > 0 
-      ? `Formatting requirements: ${uniqueInstructions.join('; ')}.`
-      : 'Use standard formatting without special styling.';
-  };
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        // Disable the default list extensions from StarterKit to avoid duplicates
-        bulletList: false,
-        orderedList: false,
-        listItem: false,
-      }),
-      TextStyle,
-      Color,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      FontFamily,
-      ListItem,
-      BulletList,
-      OrderedList,
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
-    content: '<p>Rich text content will appear here...</p>',
+  // Description editor
+  const descriptionEditor = useEditor({
+    extensions: editorExtensions,
+    content: '<p>Describe the structure of your template here...</p>',
     editable: true,
   });
 
-  // Generate template example mutation
+  // Example editor
+  const exampleEditor = useEditor({
+    extensions: editorExtensions,
+    content: '<p>Example output will appear here...</p>',
+    editable: true,
+  });
+
+  // Generate example from description
   const generateExampleMutation = useMutation({
-    mutationFn: async (templateType: string) => {
-      const response = await apiRequest('/api/generate-template-example', {
-        method: 'POST',
-        body: JSON.stringify({
-          templateType,
-          voiceProfile: selectedVoiceProfile,
-        }),
+    mutationFn: async (description: string) => {
+      const response = await apiRequest('POST', '/api/generate-template-example', {
+        description,
+        voiceProfile: selectedVoiceProfile,
       });
       return response.json();
     },
     onSuccess: (data) => {
-      if (editor && data.content) {
-        editor.commands.setContent(data.content);
-        setIsGenerating(false);
+      if (exampleEditor && data.content) {
+        exampleEditor.commands.setContent(data.content);
+        setIsUpdatingFromDescription(false);
         toast({
-          title: 'Template Generated',
-          description: 'AI-generated template example has been loaded.',
+          title: 'Example Generated',
+          description: 'AI has generated an example based on your description.',
         });
       }
     },
     onError: (error) => {
-      console.error('Error generating template example:', error);
-      setIsGenerating(false);
+      console.error('Error generating example:', error);
+      setIsUpdatingFromDescription(false);
       toast({
         title: 'Generation Failed',
-        description: 'Failed to generate template example. Please try again.',
+        description: 'Failed to generate example. Please try again.',
         variant: 'destructive',
       });
     },
   });
 
-  // Update description mutation
-  const updateDescriptionMutation = useMutation({
-    mutationFn: async (editorContent: string) => {
-      const response = await apiRequest('/api/generate-template-description', {
-        method: 'POST',
-        body: JSON.stringify({
-          content: editorContent,
-          voiceProfile: selectedVoiceProfile,
-        }),
+  // Generate description from example
+  const generateDescriptionMutation = useMutation({
+    mutationFn: async (exampleContent: string) => {
+      const response = await apiRequest('POST', '/api/generate-template-description', {
+        content: exampleContent,
+        voiceProfile: selectedVoiceProfile,
       });
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.description) {
-        setTemplateDescription(data.description);
-        setIsUpdatingDescription(false);
+      if (descriptionEditor && data.description) {
+        descriptionEditor.commands.setContent(data.description);
+        setIsUpdatingFromExample(false);
         toast({
           title: 'Description Updated',
-          description: 'AI-generated description has been created based on your template.',
+          description: 'AI has analyzed the example and generated a description.',
         });
       }
     },
     onError: (error) => {
-      console.error('Error updating description:', error);
-      setIsUpdatingDescription(false);
+      console.error('Error generating description:', error);
+      setIsUpdatingFromExample(false);
       toast({
         title: 'Update Failed',
-        description: 'Failed to update description. Please try again.',
+        description: 'Failed to generate description. Please try again.',
         variant: 'destructive',
       });
     },
   });
 
-  // Handle default template selection
-  const handleDefaultTemplateSelect = (template: StructureTemplate) => {
-    setSelectedDefaultTemplate(template.name);
-    setTemplateDescription(template.description);
-    setIsGenerating(true);
-    generateExampleMutation.mutate(template.templateType);
+  // Handle updating example from description
+  const handleUpdateFromDescription = () => {
+    if (descriptionEditor) {
+      const description = descriptionEditor.getHTML();
+      setIsUpdatingFromDescription(true);
+      generateExampleMutation.mutate(description);
+    }
   };
 
-  // Handle updating description from editor content
-  const handleUpdateDescription = () => {
-    if (editor) {
-      const content = editor.getHTML();
-      setIsUpdatingDescription(true);
-      updateDescriptionMutation.mutate(content);
+  // Handle updating description from example
+  const handleUpdateFromExample = () => {
+    if (exampleEditor) {
+      const content = exampleEditor.getHTML();
+      setIsUpdatingFromExample(true);
+      generateDescriptionMutation.mutate(content);
+    }
+  };
+
+  // Handle template selection
+  const handleTemplateSelect = (template: StructureTemplate) => {
+    setSelectedTemplate(template.name);
+    setTemplateName(template.name);
+    
+    // Load the template description
+    if (descriptionEditor && template.description) {
+      descriptionEditor.commands.setContent(template.description);
+    }
+    
+    // Load the template example if available
+    if (exampleEditor && template.editableContent) {
+      exampleEditor.commands.setContent(template.editableContent);
+    } else if (exampleEditor) {
+      // If no example exists, generate one from the description
+      setIsUpdatingFromDescription(true);
+      generateExampleMutation.mutate(template.description);
     }
   };
 
@@ -275,41 +306,37 @@ export default function TemplateEditor({
       return;
     }
 
-    if (editor) {
-      const content = editor.getHTML();
-      const formattingInstructions = generateFormattingInstructions(editor);
+    if (descriptionEditor && exampleEditor) {
+      const description = descriptionEditor.getHTML();
+      const editableContent = exampleEditor.getHTML();
+      
+      // Generate formatting instructions from the example
+      const formattingInstructions = `Use the following structure: ${description}`;
       
       onSave({
         name: templateName,
-        description: templateDescription,
-        editableContent: content,
+        description,
+        editableContent,
         formattingInstructions,
       });
-    }
-  };
-
-  // Handle loading user template
-  const handleLoadUserTemplate = (template: StructureTemplate) => {
-    setTemplateName(template.name);
-    setTemplateDescription(template.description);
-    if (editor && template.editableContent) {
-      editor.commands.setContent(template.editableContent);
     }
   };
 
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedDefaultTemplate('');
-      setTemplateDescription('');
+      setSelectedTemplate('');
       setTemplateName('');
-      if (editor) {
-        editor.commands.setContent('<p>Rich text content will appear here...</p>');
+      if (descriptionEditor) {
+        descriptionEditor.commands.setContent('<p>Describe the structure of your template here...</p>');
+      }
+      if (exampleEditor) {
+        exampleEditor.commands.setContent('<p>Example output will appear here...</p>');
       }
     }
-  }, [isOpen, editor]);
+  }, [isOpen, descriptionEditor, exampleEditor]);
 
-  if (!editor) {
+  if (!descriptionEditor || !exampleEditor) {
     return null;
   }
 
@@ -322,59 +349,122 @@ export default function TemplateEditor({
         
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-6">
-            {/* Select Default Template */}
+            {/* Select Template Section */}
             <div>
-              <Label className="text-base font-medium mb-3 block">Select Default Template</Label>
-              <div className="grid grid-cols-4 gap-3">
-                {defaultTemplates.map((template) => (
-                  <Card
-                    key={template.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedDefaultTemplate === template.name
-                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}
-                    onClick={() => handleDefaultTemplateSelect(template)}
-                  >
-                    <CardContent className="p-3">
-                      <div className="text-sm font-medium">{template.name}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        {template.description.substring(0, 60)}...
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+              <Label className="text-base font-medium mb-3 block">Select Template</Label>
+              
+              {/* Default Templates */}
+              <div className="mb-4">
+                <Label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Default Templates</Label>
+                <div className="grid grid-cols-4 gap-3">
+                  {defaultTemplates.map((template) => (
+                    <Card
+                      key={template.id}
+                      className={`cursor-pointer transition-all ${
+                        selectedTemplate === template.name
+                          ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                      onClick={() => handleTemplateSelect(template)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="text-sm font-medium">{template.name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {template.description.substring(0, 60)}...
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Previously Saved Templates */}
+              {userTemplates.length > 0 && (
+                <div>
+                  <Label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Previously Saved Templates</Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {userTemplates.map((template) => (
+                      <Card
+                        key={template.id}
+                        className={`cursor-pointer transition-all ${
+                          selectedTemplate === template.name
+                            ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                        onClick={() => handleTemplateSelect(template)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium flex-1 truncate">{template.name}</div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle delete
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
+                            {template.description.substring(0, 50)}...
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Template Description Editor */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-base font-medium">Template Description</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUpdateFromDescription}
+                  disabled={isUpdatingFromDescription}
+                  className="flex items-center gap-2"
+                >
+                  {isUpdatingFromDescription ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Update Example
+                </Button>
+              </div>
+              <div className="border rounded-lg">
+                <EditorToolbar editor={descriptionEditor} />
+                <div className="p-4 min-h-[150px] bg-white dark:bg-gray-950">
+                  <EditorContent 
+                    editor={descriptionEditor}
+                    className="prose prose-sm max-w-none dark:prose-invert"
+                  />
+                </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Template Description */}
-            <div>
-              <Label className="text-base font-medium mb-3 block">Template Description</Label>
-              <Textarea
-                value={templateDescription}
-                onChange={(e) => setTemplateDescription(e.target.value)}
-                placeholder="Enter AI-optimized prompt for template generation..."
-                rows={3}
-                className="resize-none"
-              />
-            </div>
-
-            <Separator />
-
-            {/* Template Example with TipTap Editor */}
+            {/* Template Example Editor */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <Label className="text-base font-medium">Template Example</Label>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleUpdateDescription}
-                  disabled={isUpdatingDescription}
+                  onClick={handleUpdateFromExample}
+                  disabled={isUpdatingFromExample}
                   className="flex items-center gap-2"
                 >
-                  {isUpdatingDescription ? (
+                  {isUpdatingFromExample ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
                     <RefreshCw className="h-4 w-4" />
@@ -382,104 +472,19 @@ export default function TemplateEditor({
                   Update Description
                 </Button>
               </div>
-
               <div className="border rounded-lg">
-                {/* Editor Toolbar */}
-                <div className="flex flex-wrap gap-1 p-2 border-b bg-gray-50 dark:bg-gray-900">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <Bold className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <Italic className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    className={editor.isActive('underline') ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <Underline className="h-4 w-4" />
-                  </Button>
-                  
-                  <Separator orientation="vertical" className="h-6" />
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                    className={editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <AlignLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                    className={editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <AlignCenter className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                    className={editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <AlignRight className="h-4 w-4" />
-                  </Button>
-                  
-                  <Separator orientation="vertical" className="h-6" />
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    className={editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-700' : ''}
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </Button>
-                  
-                  <Separator orientation="vertical" className="h-6" />
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-                  >
-                    <TableIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* Editor Content */}
+                <EditorToolbar editor={exampleEditor} />
                 <div className="p-4 min-h-[200px] bg-white dark:bg-gray-950">
-                  {isGenerating ? (
+                  {isUpdatingFromDescription ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="flex items-center gap-2 text-gray-500">
                         <RefreshCw className="h-4 w-4 animate-spin" />
-                        Generating template content...
+                        Generating example based on description...
                       </div>
                     </div>
                   ) : (
                     <EditorContent 
-                      editor={editor}
+                      editor={exampleEditor}
                       className="prose prose-sm max-w-none dark:prose-invert"
                     />
                   )}
@@ -489,50 +494,7 @@ export default function TemplateEditor({
 
             <Separator />
 
-            {/* Previously Saved Templates */}
-            <div>
-              <Label className="text-base font-medium mb-3 block">Previously Saved Templates</Label>
-              {userTemplates.length === 0 ? (
-                <div className="text-gray-500 dark:text-gray-400 text-sm py-4">
-                  No saved templates yet. Create your first template below.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {userTemplates.map((template) => (
-                    <Card key={template.id} className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium">{template.name}</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {template.description.substring(0, 100)}...
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleLoadUserTemplate(template)}
-                          >
-                            Load
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Save Template */}
+            {/* Save Template Section */}
             <div>
               <Label className="text-base font-medium mb-3 block">Save Template</Label>
               <div className="flex gap-3">
