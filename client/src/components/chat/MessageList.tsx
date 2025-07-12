@@ -6,7 +6,7 @@ import { Bot, User, Copy, CheckCircle2, FileText } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
-import FormattedResponsePanel from "./FormattedResponsePanel";
+import RemirrorResponsePanel from "./RemirrorResponsePanel";
 import type { Message } from "@shared/schema";
 
 interface MessageBubbleProps {
@@ -57,7 +57,7 @@ function MessageBubble({ message, onCopy, copiedMessageId, formatTime, onOpenFor
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onCopy(message.id)}
+                  onClick={onCopy}
                   className="h-6 px-2 text-xs"
                 >
                   {copiedMessageId === message.id ? (
@@ -164,7 +164,7 @@ export default function MessageList() {
       )}
       <div ref={messagesEndRef} />
       
-      <FormattedResponsePanel
+      <RemirrorResponsePanel
         content={selectedMessageContent}
         isOpen={formattedPanelOpen}
         onClose={() => setFormattedPanelOpen(false)}
