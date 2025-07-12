@@ -15,7 +15,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { isUnauthorizedError } from '@/lib/authUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { useChatContext } from '@/contexts/ChatContext';
-import { FileText, Plus, Edit, Trash2, Check, X, RefreshCw } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Check, X, RefreshCw, Save } from 'lucide-react';
 import type { StructureTemplate } from '@shared/schema';
 import TemplateEditor from '@/components/templates/TemplateEditor';
 
