@@ -31,8 +31,11 @@ import {
   X,
   FileText,
   Download,
-  Save
+  Save,
+  FileDown
 } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { saveAs } from "file-saver";
 
 interface RemirrorResponsePanelProps {
   content: string;
@@ -191,18 +194,24 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
     new DropCursorExtension(),
   ], []);
 
-  const { manager, state } = useRemirror({
+  const { manager, state, onChange } = useRemirror({
     extensions,
     content: formattedContent,
     stringHandler: "html",
   });
 
   useEffect(() => {
-    if (content) {
+    if (content && manager) {
       const formatted = formatContent(content);
       setFormattedContent(formatted);
+      // Update the editor content
+      const newState = manager.createState({
+        content: formatted,
+        stringHandler: "html",
+      });
+      manager.view.updateState(newState);
     }
-  }, [content]);
+  }, [content, manager]);
 
   const exportAsHTML = () => {
     const helpers = manager.helpers;
@@ -230,6 +239,86 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
       a.click();
       URL.revokeObjectURL(url);
     }
+  };
+
+  const exportAsDocx = async () => {
+    const helpers = manager.helpers;
+    if (!helpers) return;
+
+    const text = helpers.getText();
+    const lines = text.split('\n');
+    const paragraphs: Paragraph[] = [];
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        paragraphs.push(new Paragraph({ text: "" }));
+        return;
+      }
+
+      // Check for headings
+      if (trimmed.startsWith('###')) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.replace(/^###\s*/, ''),
+          heading: HeadingLevel.HEADING_3,
+        }));
+      } else if (trimmed.startsWith('##')) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.replace(/^##\s*/, ''),
+          heading: HeadingLevel.HEADING_2,
+        }));
+      } else if (trimmed.startsWith('#')) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.replace(/^#\s*/, ''),
+          heading: HeadingLevel.HEADING_1,
+        }));
+      } else {
+        // Handle text with formatting
+        const runs: TextRun[] = [];
+        let remainingText = trimmed;
+        
+        // Simple bold detection
+        const boldRegex = /\*\*(.*?)\*\*/g;
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = boldRegex.exec(trimmed)) !== null) {
+          // Add text before bold
+          if (match.index > lastIndex) {
+            runs.push(new TextRun({
+              text: trimmed.substring(lastIndex, match.index),
+            }));
+          }
+          // Add bold text
+          runs.push(new TextRun({
+            text: match[1],
+            bold: true,
+          }));
+          lastIndex = match.index + match[0].length;
+        }
+        
+        // Add remaining text
+        if (lastIndex < trimmed.length) {
+          runs.push(new TextRun({
+            text: trimmed.substring(lastIndex),
+          }));
+        }
+        
+        paragraphs.push(new Paragraph({
+          children: runs.length > 0 ? runs : [new TextRun(trimmed)],
+        }));
+      }
+    });
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: paragraphs,
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "formatted-response.docx");
   };
 
   if (!isOpen) return null;
@@ -261,6 +350,15 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
               <Save className="h-4 w-4" />
               Export Markdown
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportAsDocx}
+              className="flex items-center gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              Export DOCX
+            </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
@@ -271,7 +369,13 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
         
         <CardContent className="p-0">
           <ThemeProvider>
-            <Remirror manager={manager} state={state}>
+            <Remirror 
+              manager={manager} 
+              state={state}
+              onChange={(params) => onChange(params)}
+              autoFocus
+              placeholder="Your formatted content will appear here..."
+            >
               <EditorToolbar />
               
               {/* Editor Content */}
