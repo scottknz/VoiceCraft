@@ -35,12 +35,35 @@ const toneOptions = [
   "Analytical", "Creative", "Empathetic", "Direct", "Diplomatic"
 ];
 
-const formattingLabels = {
-  boldUsage: ["None", "Minimal", "Moderate", "Frequent", "Heavy", "Maximum"],
-  lineSpacing: ["Dense", "Compact", "Normal", "Comfortable", "Spacious", "Very Spacious"],
-  emojiUsage: ["Never", "Very Rare", "Sparingly", "Occasionally", "Frequently", "Expressively"],
-  listVsParagraphs: ["All Paragraphs", "Mostly Paragraphs", "Balanced", "Prefer Lists", "Mostly Lists", "All Lists"],
-  markupStyle: ["Plain Text", "Light Formatting", "Markdown", "Rich Markdown", "HTML Elements", "Full HTML"]
+const formattingOptions = {
+  boldUsage: [
+    "Never use bold text",
+    "Sparingly use bold text", 
+    "Sometimes use bold text",
+    "Often use bold text",
+    "As much as possible use bold text"
+  ],
+  lineSpacing: [
+    "Never use line spacing",
+    "Sparingly use line spacing",
+    "Sometimes use line spacing", 
+    "Often use line spacing",
+    "As much as possible use line spacing"
+  ],
+  emojiUsage: [
+    "Never use emojis",
+    "Sparingly use emojis",
+    "Sometimes use emojis",
+    "Often use emojis", 
+    "As much as possible use emojis"
+  ],
+  listVsParagraphs: [
+    "Never use lists & bullets",
+    "Sparingly use lists & bullets",
+    "Sometimes use lists & bullets",
+    "Often use lists & bullets",
+    "As much as possible use lists & bullets"
+  ]
 };
 
 const formSchema = insertVoiceProfileSchema.omit({
@@ -75,6 +98,17 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
     },
   });
 
+  // Helper functions to convert between text and numeric values
+  const getFormattingIndex = (textValue: string | null, optionArray: string[]): number => {
+    if (!textValue) return 2; // Default to "Sometimes"
+    const index = optionArray.findIndex(option => option === textValue);
+    return index !== -1 ? index : 2;
+  };
+
+  const getFormattingText = (index: number, optionArray: string[]): string => {
+    return optionArray[index] || optionArray[2]; // Default to "Sometimes"
+  };
+
   // Initialize selected template when editing existing profile
   useEffect(() => {
     if (profile && structureTemplates && !selectedStructureTemplate) {
@@ -102,10 +136,10 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
       toneOptions: profile?.toneOptions || [],
       customTones: profile?.customTones || [],
       ethicalBoundaries: profile?.ethicalBoundaries || [],
-      boldUsage: profile?.boldUsage || 2,
-      lineSpacing: profile?.lineSpacing || 2,
-      emojiUsage: profile?.emojiUsage || 1,
-      listVsParagraphs: profile?.listVsParagraphs || 2,
+      boldUsage: profile ? getFormattingIndex(profile.boldUsage as string, formattingOptions.boldUsage) : 2,
+      lineSpacing: profile ? getFormattingIndex(profile.lineSpacing as string, formattingOptions.lineSpacing) : 2,
+      emojiUsage: profile ? getFormattingIndex(profile.emojiUsage as string, formattingOptions.emojiUsage) : 1,
+      listVsParagraphs: profile ? getFormattingIndex(profile.listVsParagraphs as string, formattingOptions.listVsParagraphs) : 2,
       markupStyle: profile?.markupStyle || 2,
       preferredStance: profile?.preferredStance || "",
       humourLevel: profile?.humourLevel || "",
@@ -114,9 +148,18 @@ export default function DetailedVoiceProfileModal({ isOpen, onClose, profile }: 
 
   const mutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
+      // Convert numeric values back to text format for database storage
+      const processedData = {
+        ...data,
+        boldUsage: getFormattingText(data.boldUsage as number, formattingOptions.boldUsage),
+        lineSpacing: getFormattingText(data.lineSpacing as number, formattingOptions.lineSpacing), 
+        emojiUsage: getFormattingText(data.emojiUsage as number, formattingOptions.emojiUsage),
+        listVsParagraphs: getFormattingText(data.listVsParagraphs as number, formattingOptions.listVsParagraphs),
+      };
+      
       const url = profile ? `/api/voice-profiles/${profile.id}` : "/api/voice-profiles";
       const method = profile ? "PATCH" : "POST";
-      const response = await apiRequest(method, url, data);
+      const response = await apiRequest(method, url, processedData);
       return response.json();
     },
     onSuccess: () => {

@@ -86,11 +86,11 @@ export const voiceProfiles = pgTable("voice_profiles", {
   // Structure
   structurePreferences: text("structure_preferences"),
   
-  // Formatting - sliders (0-5)
-  boldUsage: integer("bold_usage").default(2), // 0-5
-  lineSpacing: integer("line_spacing").default(2), // 0=dense, 5=spacious
-  emojiUsage: integer("emoji_usage").default(1), // 0=never, 2=sparingly, 5=expressively
-  listVsParagraphs: integer("list_vs_paragraphs").default(2), // 0=all paragraphs, 5=all lists
+  // Formatting - text format based on radio button selections
+  boldUsage: text("bold_usage").default("Sometimes use bold text"),
+  lineSpacing: text("line_spacing").default("Sometimes use line spacing"),
+  emojiUsage: text("emoji_usage").default("Sparingly use emojis"),
+  listVsParagraphs: text("list_vs_paragraphs").default("Sometimes use lists & bullets"),
   markupStyle: integer("markup_style").default(2), // 0=plain text, 2=markdown, 5=HTML
   
   // Personality & Values

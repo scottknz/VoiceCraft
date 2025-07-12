@@ -45,51 +45,67 @@ export function generateVoiceSystemPrompt(voiceProfile: VoiceProfile): string {
   // Formatting and style
   const formatRules: string[] = [];
 
-  // Bold usage (0-5 scale)
-  if (voiceProfile.boldUsage !== null && voiceProfile.boldUsage !== undefined) {
-    const boldLevel = voiceProfile.boldUsage;
-    if (boldLevel <= 1) {
+  // Bold usage (text format)
+  if (voiceProfile.boldUsage) {
+    const boldText = voiceProfile.boldUsage as string;
+    if (boldText.includes("Never")) {
       formatRules.push("Never use bold text or emphasis formatting");
-    } else if (boldLevel >= 4) {
-      formatRules.push("Use **bold text** frequently for emphasis and key points");
-    } else {
+    } else if (boldText.includes("Sparingly")) {
+      formatRules.push("Use **bold text** sparingly for only the most important concepts");
+    } else if (boldText.includes("Sometimes")) {
       formatRules.push("Use **bold text** selectively for important concepts");
+    } else if (boldText.includes("Often")) {
+      formatRules.push("Use **bold text** frequently for emphasis and key points");
+    } else if (boldText.includes("As much as possible")) {
+      formatRules.push("Use **bold text** extensively throughout for maximum emphasis");
     }
   }
 
-  // Line spacing (0-5 scale)
-  if (voiceProfile.lineSpacing !== null && voiceProfile.lineSpacing !== undefined) {
-    const spacing = voiceProfile.lineSpacing;
-    if (spacing <= 1) {
+  // Line spacing (text format)
+  if (voiceProfile.lineSpacing) {
+    const spacingText = voiceProfile.lineSpacing as string;
+    if (spacingText.includes("Never")) {
       formatRules.push("Write in compact, dense paragraphs with minimal line breaks");
-    } else if (spacing >= 4) {
-      formatRules.push("Use generous spacing with short paragraphs and frequent line breaks");
-    } else {
+    } else if (spacingText.includes("Sparingly")) {
+      formatRules.push("Use tight spacing with mostly dense paragraphs");
+    } else if (spacingText.includes("Sometimes")) {
       formatRules.push("Use moderate spacing with balanced paragraph lengths");
+    } else if (spacingText.includes("Often")) {
+      formatRules.push("Use generous spacing with shorter paragraphs and frequent line breaks");
+    } else if (spacingText.includes("As much as possible")) {
+      formatRules.push("Use maximum spacing with very short paragraphs and extensive line breaks");
     }
   }
 
-  // Emoji usage (0-5 scale)
-  if (voiceProfile.emojiUsage !== null && voiceProfile.emojiUsage !== undefined) {
-    const emojiLevel = voiceProfile.emojiUsage;
-    if (emojiLevel <= 1) {
+  // Emoji usage (text format)
+  if (voiceProfile.emojiUsage) {
+    const emojiText = voiceProfile.emojiUsage as string;
+    if (emojiText.includes("Never")) {
       formatRules.push("Never use emojis - maintain purely text-based communication");
-    } else if (emojiLevel >= 4) {
-      formatRules.push("Use emojis regularly to enhance expression and engagement");
-    } else {
-      formatRules.push("Use emojis sparingly and only when they add meaningful context");
+    } else if (emojiText.includes("Sparingly")) {
+      formatRules.push("Use emojis very sparingly and only for essential context");
+    } else if (emojiText.includes("Sometimes")) {
+      formatRules.push("Use emojis occasionally when they add meaningful context");
+    } else if (emojiText.includes("Often")) {
+      formatRules.push("Use emojis frequently to enhance expression and engagement");
+    } else if (emojiText.includes("As much as possible")) {
+      formatRules.push("Use emojis extensively throughout responses for maximum expression");
     }
   }
 
-  // List vs paragraphs (0-5 scale)
-  if (voiceProfile.listVsParagraphs !== null && voiceProfile.listVsParagraphs !== undefined) {
-    const listPreference = voiceProfile.listVsParagraphs;
-    if (listPreference <= 1) {
-      formatRules.push("Write in flowing paragraphs - avoid bullet points and lists");
-    } else if (listPreference >= 4) {
-      formatRules.push("Structure information as bullet points and numbered lists whenever possible");
-    } else {
+  // List vs paragraphs (text format)
+  if (voiceProfile.listVsParagraphs) {
+    const listText = voiceProfile.listVsParagraphs as string;
+    if (listText.includes("Never")) {
+      formatRules.push("Write in flowing paragraphs - avoid bullet points and lists completely");
+    } else if (listText.includes("Sparingly")) {
+      formatRules.push("Prefer paragraphs, use lists only when absolutely necessary");
+    } else if (listText.includes("Sometimes")) {
       formatRules.push("Balance paragraphs with lists based on content type");
+    } else if (listText.includes("Often")) {
+      formatRules.push("Favor lists and bullet points over paragraphs when possible");
+    } else if (listText.includes("As much as possible")) {
+      formatRules.push("Structure information as bullet points and numbered lists whenever possible");
     }
   }
 
