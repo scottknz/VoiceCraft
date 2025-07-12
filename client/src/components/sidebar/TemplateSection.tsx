@@ -253,123 +253,128 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
 
   return (
     <div className={className}>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Templates
-            </CardTitle>
-            <Button
-              onClick={handleCreateTemplate}
-              size="sm"
-              className="h-8 w-8 p-0"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Active Template */}
-          {selectedTemplate && (
-            <div className="mb-4">
-              <div className="text-sm font-medium mb-2">Active Template:</div>
-              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-sm">{selectedTemplate.name}</span>
-                  <Badge variant="default" className="text-xs">Active</Badge>
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {selectedTemplate.description}
-                </p>
-                {selectedTemplate.formattingInstructions && (
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {selectedTemplate.formattingInstructions}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+      {/* Templates Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Templates</h3>
+        <Button
+          onClick={handleCreateTemplate}
+          size="sm"
+          className="h-8 w-8 p-0"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
 
-          {/* User Templates */}
-          <div className="space-y-2">
-            {userTemplates.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-xs text-gray-500">No templates yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {userTemplates.map((template) => (
-                  <Card 
-                    key={template.id}
-                    className={`cursor-pointer transition-all hover:shadow-sm group ${
-                      selectedTemplate?.id === template.id 
-                        ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/50' 
-                        : 'border border-gray-200 dark:border-gray-700'
-                    }`}
-                    onClick={() => setSelectedTemplate(template)}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {template.name}
-                          </h4>
-                          {template.description && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-1">
-                              {template.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditTemplate(template);
-                            }}
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTemplate(template);
-                            }}
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+      {/* Templates List */}
+      <div className="space-y-2">
+        {userTemplates.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
+            <p className="text-sm">No templates yet</p>
+            <p className="text-xs mt-1">Click + to create your first template</p>
+          </div>
+        ) : (
+          userTemplates.map((template) => (
+            <Card 
+              key={template.id}
+              className={`cursor-pointer transition-all hover:shadow-sm group ${
+                selectedTemplate?.id === template.id 
+                  ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/50' 
+                  : 'border border-gray-200 dark:border-gray-700'
+              }`}
+              onClick={() => setSelectedTemplate(template)}
+            >
+              <CardContent className="p-3">
+                {selectedTemplate?.id === template.id ? (
+                  // Active template - full information
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {template.name}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="default" className="text-xs">Active</Badge>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-
-
-          {/* Clear Selection */}
-          {selectedTemplate && (
-            <div className="mt-4 pt-3 border-t">
-              <Button
-                onClick={() => setSelectedTemplate(null)}
-                size="sm"
-                variant="outline"
-                className="w-full text-xs"
-              >
-                Clear Active Template
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTemplate(template);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTemplate(template);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    {template.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                        {template.description}
+                      </p>
+                    )}
+                    {template.formattingInstructions && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1">
+                        {template.formattingInstructions}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  // Inactive template - minimal display
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {template.name}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">Inactive</Badge>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTemplate(template);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTemplate(template);
+                          }}
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* Template Creation/Edit Modal */}
       <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
