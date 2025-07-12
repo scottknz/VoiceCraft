@@ -466,7 +466,7 @@ Generate a description that is:
 Description:`;
 
       const response = await createChatResponse({
-        model: "gemini-2.5-flash",
+        model: "gpt-4o",
         messages: [
           { role: "user", content: prompt }
         ],
@@ -508,7 +508,7 @@ Create content that:
 Generate only the HTML content without explanations:`;
 
       const response = await createChatResponse({
-        model: "gemini-2.5-flash",
+        model: "gpt-4o",
         messages: [
           { role: "user", content: prompt }
         ],

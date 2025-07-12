@@ -179,6 +179,7 @@ export default function TemplateEditor({
 }: TemplateEditorProps) {
   const { toast } = useToast();
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedDefaultTemplate, setSelectedDefaultTemplate] = useState<string>('');
   const [templateName, setTemplateName] = useState('');
   const [isUpdatingFromDescription, setIsUpdatingFromDescription] = useState(false);
   const [isUpdatingFromExample, setIsUpdatingFromExample] = useState(false);
@@ -200,11 +201,15 @@ export default function TemplateEditor({
   // Generate example from description
   const generateExampleMutation = useMutation({
     mutationFn: async (description: string) => {
+      console.log('Generating example for description:', description);
       const response = await apiRequest('POST', '/api/generate-template-example', {
         description,
+        templateType: selectedDefaultTemplate,
         voiceProfile: selectedVoiceProfile,
       });
-      return response.json();
+      const result = await response.json();
+      console.log('Example generation result:', result);
+      return result;
     },
     onSuccess: (data) => {
       if (exampleEditor && data.content) {
@@ -230,11 +235,15 @@ export default function TemplateEditor({
   // Generate description from example
   const generateDescriptionMutation = useMutation({
     mutationFn: async (exampleContent: string) => {
+      console.log('Generating description for example:', exampleContent);
       const response = await apiRequest('POST', '/api/generate-template-description', {
         content: exampleContent,
+        templateType: selectedDefaultTemplate,
         voiceProfile: selectedVoiceProfile,
       });
-      return response.json();
+      const result = await response.json();
+      console.log('Description generation result:', result);
+      return result;
     },
     onSuccess: (data) => {
       if (descriptionEditor && data.description) {
@@ -278,6 +287,7 @@ export default function TemplateEditor({
   // Handle template selection
   const handleTemplateSelect = (template: StructureTemplate) => {
     setSelectedTemplate(template.name);
+    setSelectedDefaultTemplate(template.name.toLowerCase().replace(/\s+/g, '_'));
     setTemplateName(template.name);
     
     // Load the template description
