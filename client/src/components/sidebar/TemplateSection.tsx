@@ -200,16 +200,18 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
       
       // Generate random rich text content based on template description
       try {
-        const response = await apiRequest('/api/generate-template-example', {
-          method: 'POST',
-          body: {
+        const response = await apiRequest(
+          'POST',
+          '/api/generate-template-example',
+          {
             description: defaultTemplate.description,
             templateType: templateType
           }
-        });
+        );
         
-        if (response.content) {
-          setTemplateContent(response.content);
+        const data = await response.json();
+        if (data.content) {
+          setTemplateContent(data.content);
         } else {
           setTemplateContent(defaultTemplate.example || '');
         }
@@ -284,17 +286,19 @@ export default function TemplateSection({ className }: TemplateSectionProps) {
       // Generate AI description based on template content using active voice profile
       const activeVoiceProfile = selectedVoiceProfile;
       
-      const response = await apiRequest('/api/generate-template-description', {
-        method: 'POST',
-        body: {
+      const response = await apiRequest(
+        'POST',
+        '/api/generate-template-description',
+        {
           content: templateContent,
           templateType: selectedDefaultTemplate || 'custom',
           voiceProfileId: activeVoiceProfile?.id
         }
-      });
+      );
 
-      if (response.description) {
-        setTemplateDescription(response.description);
+      const data = await response.json();
+      if (data.description) {
+        setTemplateDescription(data.description);
         toast({
           title: "Description Updated",
           description: "Template description has been updated based on your content structure.",
