@@ -294,3 +294,4 @@ Changelog:
   - Templates system allows users to: select default templates, create custom templates, edit with visual formatting, export formatted responses
   - Integrated with existing structure template database schema for seamless backend compatibility
   - TipTap editor includes toolbar with formatting controls: text styling, alignment, lists, tables, save/export options
+  - Added "Back to Chat" exit buttons to both Account Settings and Templates pages for improved navigation

@@ -22,8 +22,11 @@ import {
   Calendar,
   MapPin,
   Globe,
-  Trash2
+  Trash2,
+  ArrowLeft,
+  X
 } from "lucide-react";
+import { Link } from "wouter";
 import { format } from "date-fns";
 import type { User as UserType, UserSession, SecurityEvent } from "@shared/schema";
 
@@ -267,12 +270,22 @@ export default function Profile() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            Account Settings
-          </h1>
-          <p className="text-slate-600 dark:text-slate-300">
-            Manage your account information, security settings, and activity.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                Account Settings
+              </h1>
+              <p className="text-slate-600 dark:text-slate-300">
+                Manage your account information, security settings, and activity.
+              </p>
+            </div>
+            <Link href="/">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Chat
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">

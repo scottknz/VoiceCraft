@@ -10,7 +10,8 @@ import { isUnauthorizedError } from '@/lib/authUtils';
 import TemplateSelector from '@/components/templates/TemplateSelector';
 import TemplateOutputPanel from '@/components/templates/TemplateOutputPanel';
 import type { StructureTemplate } from '@shared/schema';
-import { FileText, Sparkles, Layout, PanelRightOpen } from 'lucide-react';
+import { FileText, Sparkles, Layout, PanelRightOpen, ArrowLeft } from 'lucide-react';
+import { Link } from 'wouter';
 
 export default function Templates() {
   const { user } = useAuth();
@@ -143,6 +144,13 @@ export default function Templates() {
                 Create and manage structured templates for AI responses
               </p>
             </div>
+            
+            <Link href="/">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Chat
+              </Button>
+            </Link>
             
             <div className="flex items-center gap-3">
               {selectedTemplate && (
