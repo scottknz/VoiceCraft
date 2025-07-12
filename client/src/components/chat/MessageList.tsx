@@ -2,10 +2,11 @@ import { useRef, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bot, User, Copy, CheckCircle2 } from "lucide-react";
+import { Bot, User, Copy, CheckCircle2, FileText } from "lucide-react";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
+import FormattedResponsePanel from "./FormattedResponsePanel";
 import type { Message } from "@shared/schema";
 
 interface MessageBubbleProps {
@@ -13,9 +14,10 @@ interface MessageBubbleProps {
   onCopy: () => void;
   copiedMessageId: number | null;
   formatTime: (date: Date) => string;
+  onOpenFormatted: () => void;
 }
 
-function MessageBubble({ message, onCopy, copiedMessageId, formatTime }: MessageBubbleProps) {
+function MessageBubble({ message, onCopy, copiedMessageId, formatTime, onOpenFormatted }: MessageBubbleProps) {
   const isUser = message.role === "user";
   
   return (
@@ -64,6 +66,15 @@ function MessageBubble({ message, onCopy, copiedMessageId, formatTime }: Message
                     <Copy className="h-3 w-3" />
                   )}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onOpenFormatted}
+                  className="h-6 px-2 text-xs"
+                  title="Open formatted editor"
+                >
+                  <FileText className="h-3 w-3" />
+                </Button>
               </div>
             )}
           </CardContent>
@@ -83,6 +94,8 @@ export default function MessageList() {
   const { user } = useAuth();
   const { currentConversation } = useChatContext();
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+  const [formattedPanelOpen, setFormattedPanelOpen] = useState(false);
+  const [selectedMessageContent, setSelectedMessageContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use the optimized messages from useChat that include instant updates
@@ -112,6 +125,11 @@ export default function MessageList() {
     }
   };
 
+  const openFormattedPanel = (content: string) => {
+    setSelectedMessageContent(content);
+    setFormattedPanelOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -139,11 +157,18 @@ export default function MessageList() {
               onCopy={() => copyToClipboard(Number(message.id))}
               copiedMessageId={copiedMessageId}
               formatTime={formatTime}
+              onOpenFormatted={() => openFormattedPanel(message.content)}
             />
           ))}
         </>
       )}
       <div ref={messagesEndRef} />
+      
+      <FormattedResponsePanel
+        content={selectedMessageContent}
+        isOpen={formattedPanelOpen}
+        onClose={() => setFormattedPanelOpen(false)}
+      />
     </div>
   );
 }
