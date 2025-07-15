@@ -16,8 +16,8 @@ An AI-powered voice assistant application that allows users to create custom voi
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ES modules
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Replit Auth with OpenID Connect
+- **Database**: Supabase PostgreSQL with Drizzle ORM
+- **Authentication**: Custom username/password authentication
 - **Session Management**: Express sessions with PostgreSQL store
 
 ### AI Integration
@@ -59,7 +59,7 @@ An AI-powered voice assistant application that allows users to create custom voi
 ## External Dependencies
 
 ### Core Dependencies
-- **@neondatabase/serverless**: PostgreSQL database connection
+- **pg**: PostgreSQL database connection (Supabase compatible)
 - **drizzle-orm**: Type-safe database queries and migrations
 - **@google/genai**: Google Gemini AI integration
 - **openai**: OpenAI API integration
