@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Remirror, useRemirror, ThemeProvider, useCommands, useActive, useHelpers } from "@remirror/react";
+import { Remirror, useRemirror, ThemeProvider, useCommands, useActive, useHelpers, EditorComponent } from "@remirror/react";
 import type { RemirrorJSON } from "remirror";
 import { 
   BoldExtension,
@@ -201,17 +201,22 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
   });
 
   useEffect(() => {
-    if (content && manager) {
+    if (content && isOpen && manager) {
       const formatted = formatContent(content);
       setFormattedContent(formatted);
-      // Update the editor content
+      
+      // Update the editor state with the formatted content
       const newState = manager.createState({
         content: formatted,
         stringHandler: "html",
       });
-      manager.view.updateState(newState);
+      
+      // Update the editor view
+      if (manager.view) {
+        manager.view.updateState(newState);
+      }
     }
-  }, [content, manager]);
+  }, [content, isOpen, manager]);
 
   const exportAsHTML = () => {
     const helpers = manager.helpers;
@@ -380,8 +385,8 @@ export default function RemirrorResponsePanel({ content, isOpen, onClose }: Remi
               
               {/* Editor Content */}
               <div className="p-4 max-h-[65vh] overflow-y-auto">
-                <div className="min-h-[400px] border rounded-lg p-4 prose prose-sm max-w-none focus-within:ring-2 focus-within:ring-blue-500">
-                  {/* Remirror editor content is rendered here */}
+                <div className="min-h-[400px] border rounded-lg p-4 prose prose-sm max-w-none focus-within:ring-2 focus-within:ring-blue-500 remirror-editor-wrapper">
+                  <EditorComponent />
                 </div>
               </div>
             </Remirror>
